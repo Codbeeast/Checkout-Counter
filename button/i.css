@@ -1,0 +1,20 @@
+html{
+    margin:0;
+    padding:0;
+    font-family: Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+button {
+    padding: 20px 30px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: medium;
+    cursor: pointer;
+
+}
