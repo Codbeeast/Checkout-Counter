@@ -324,6 +324,10 @@ export default function CheckoutPage({
       setProofError("Please enter your name.")
       return
     }
+    if (!screenshotBase64) {
+      setProofError("Please upload the payment proof.")
+      return
+    }
 
     setIsSubmittingProof(true)
 
@@ -334,7 +338,7 @@ export default function CheckoutPage({
         body: JSON.stringify({
           payer_name: payerName,
           utr: utrNumber,
-          screenshot_url: screenshotBase64 || "https://firebase.mock/proof_ss.png",
+          screenshot_url: screenshotBase64,
           verification_type: verificationType
         })
       })
@@ -1036,6 +1040,12 @@ export default function CheckoutPage({
                     Upload Payment Proof <span className="text-rose-500">*</span>
                   </label>
 
+                  {proofError && (
+                    <div className="mb-3 p-3 bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl text-xs font-semibold animate-pulse">
+                      {proofError}
+                    </div>
+                  )}
+
                   <div className="relative border border-dashed border-[#0f2744] bg-[#02050c]/40 hover:bg-[#02050c]/70 rounded-2xl p-6 text-center transition flex flex-col items-center justify-center min-h-[120px] select-none cursor-pointer">
                     <input
                       type="file"
@@ -1054,7 +1064,7 @@ export default function CheckoutPage({
                     />
 
                     {screenshotBase64 ? (
-                      <div className="relative w-full flex flex-col items-center">
+                      <div className="relative w-full flex flex-col items-center justify-center p-2">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           src={screenshotBase64}
@@ -1062,13 +1072,15 @@ export default function CheckoutPage({
                           className="max-h-28 rounded-lg object-contain border border-[#0f2744]"
                         />
                         <button
+                          type="button"
                           onClick={(e) => {
                             e.preventDefault()
                             setScreenshotBase64(null)
                           }}
-                          className="absolute -top-2 right-12 bg-red-500 text-white p-1 rounded-full text-[9px] font-bold"
+                          className="absolute -top-1.5 -right-1.5 bg-rose-600 hover:bg-rose-500 text-white p-1 rounded-full shadow-lg border border-rose-500/20 transition-all hover:scale-105 active:scale-95 z-10"
+                          title="Remove screenshot"
                         >
-                          Wipe
+                          <X className="h-3 w-3" />
                         </button>
                       </div>
                     ) : (
@@ -1080,7 +1092,7 @@ export default function CheckoutPage({
                   </div>
                   
                   {/* Button to generate mock screenshot */}
-                  <div className="pt-2 text-center">
+                  {/* <div className="pt-2 text-center">
                     <button
                       type="button"
                       onClick={generateMockScreenshot}
@@ -1088,16 +1100,12 @@ export default function CheckoutPage({
                     >
                       ✨ Generate Mock PhonePe Payment slip
                     </button>
-                  </div>
+                  </div> */}
                 </div>
 
                 {/* Enforces standard manual vendor/admin audits */}
 
-                {proofError && (
-                  <div className="p-3 bg-red-500/5 border border-red-500/20 text-red-400 rounded-xl text-xs">
-                    {proofError}
-                  </div>
-                )}
+                {/* Error messages are now rendered dynamically above the upload proof box */}
               </div>
             </div>
           </div>

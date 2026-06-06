@@ -80,7 +80,7 @@ export default function Home() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-api-key': 'fd4fca8b-0122-4a42-b2ed-4dd507a8f6ea',
+          'x-api-key':  process.env.NEXT_PUBLIC_API_KEY || '', // Ensure API key is sent for authentication
         },
         body: JSON.stringify({
           amount_inr: amt,
