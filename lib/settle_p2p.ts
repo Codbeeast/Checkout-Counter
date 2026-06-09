@@ -33,6 +33,21 @@ export async function settleP2PPayment(paymentId: string): Promise<{ success: bo
     const txHash = Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join("");
     console.log(`[Settlement] 💡 Generated simulated platform TxHash: ${txHash}`);
 
+    // Fetch merchant to resolve dynamic payin commission rate
+    const merchant = await db.collection("merchants").findOne({
+      $or: [
+        { apiKey: payment.merchantApiKey },
+        { apiKeyHash: payment.merchantApiKey }
+      ]
+    });
+    
+    const payinCommissionRate = merchant && typeof merchant.payinCommissionRate === "number" 
+      ? merchant.payinCommissionRate 
+      : (merchant && typeof merchant.buyCommissionRate === "number" ? merchant.buyCommissionRate : 2);
+      
+    const fee = payment.amountUSDT * (payinCommissionRate / 100);
+    const creditedAmount = payment.amountUSDT - fee;
+
     // 4. Update Database Record atomically to prevent double settlement
     const updateResult = await db.collection("payments").updateOne(
       { paymentId, status: { $ne: "completed" } },
@@ -41,6 +56,8 @@ export async function settleP2PPayment(paymentId: string): Promise<{ success: bo
           status: "completed",
           txHash: txHash,
           vendorApproval: "approved",
+          fee: fee,
+          payinCommissionRate: payinCommissionRate,
           updatedAt: new Date()
         }
       }
@@ -62,12 +79,13 @@ export async function settleP2PPayment(paymentId: string): Promise<{ success: bo
       );
       console.log(`[Settlement] Deducted ${payment.amountUSDT} USDT from vendor profile ${payment.vendorId}. Result: matched=${vendorUpdate.matchedCount}, modified=${vendorUpdate.modifiedCount}`);
 
-      // Credit USDT to merchant (fee is 0 by default, so credit full amountUSDT)
+      // Credit USDT to merchant (fee is deducted)
+      const merchantSelector = merchant ? { _id: merchant._id } : { apiKey: payment.merchantApiKey };
       const merchantUpdate = await db.collection("merchants").updateOne(
-        { apiKey: payment.merchantApiKey },
-        { $inc: { balance: payment.amountUSDT } }
+        merchantSelector,
+        { $inc: { balance: creditedAmount } }
       );
-      console.log(`[Settlement] Credited ${payment.amountUSDT} USDT to merchant using apiKey. Result: matched=${merchantUpdate.matchedCount}, modified=${merchantUpdate.modifiedCount}`);
+      console.log(`[Settlement] Credited ${creditedAmount} USDT (after ${payinCommissionRate}% fee of ${fee} USDT) to merchant. Result: matched=${merchantUpdate.matchedCount}, modified=${merchantUpdate.modifiedCount}`);
     } catch (balanceErr) {
       console.error("[Settlement] ❌ Balance settlement error:", balanceErr);
       // We don't fail the whole function if payment status was updated, but log the error

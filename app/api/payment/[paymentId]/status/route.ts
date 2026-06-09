@@ -66,7 +66,7 @@ export async function GET(
           }
 
           // Check expiration
-          if (current.status !== "withheld" && Date.now() > current.expiresAt) {
+          if (current.status === "pending" && Date.now() > current.expiresAt) {
             await updatePayment(paymentId, { status: "expired" });
             send({ status: "expired" });
             close();
@@ -88,9 +88,9 @@ export async function GET(
 
           // P2P Gateway Flow status updates (Database only - no blockchain calls)
           send({
-            status: current.status, // "pending", "confirming", or "withheld"
+            status: current.status, // "pending", "confirming", "withheld", or "frozen"
             vendorApproval: current.vendorApproval,
-            timeLeft: current.status === "withheld"
+            timeLeft: ((current.status as string) === "withheld" || (current.status as string) === "frozen")
               ? (current.frozenTimeLeft ?? 0)
               : Math.max(0, current.expiresAt - Date.now()),
           });

@@ -42,6 +42,7 @@ export interface Payment {
   // Withheld/Fee fields
   frozenTimeLeft?: number;
   fee?: number;
+  payinCommissionRate?: number;
 }
 
 export async function savePayment(payment: Payment) {
@@ -121,6 +122,7 @@ export async function getPayment(paymentId: string): Promise<Payment | undefined
       merchantUserId: row.merchantUserId,
       frozenTimeLeft: row.frozenTimeLeft !== undefined ? Number(row.frozenTimeLeft) : undefined,
       fee: row.fee !== undefined ? Number(row.fee) : undefined,
+      payinCommissionRate: row.payinCommissionRate !== undefined ? Number(row.payinCommissionRate) : undefined,
     };
   } catch (err) {
     console.error("[DB] Error getting payment from MongoDB:", err);
@@ -200,6 +202,7 @@ export async function getAllPayments(): Promise<Payment[]> {
       merchantUserId: row.merchantUserId,
       frozenTimeLeft: row.frozenTimeLeft !== undefined ? Number(row.frozenTimeLeft) : undefined,
       fee: row.fee !== undefined ? Number(row.fee) : undefined,
+      payinCommissionRate: row.payinCommissionRate !== undefined ? Number(row.payinCommissionRate) : undefined,
     }));
   } catch (err) {
     console.error("[DB] Error getting all payments from MongoDB:", err);

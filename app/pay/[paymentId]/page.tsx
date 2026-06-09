@@ -245,10 +245,10 @@ export default function CheckoutPage({
         } else if (data.status === 'cancelled') {
           setPaymentStatus('cancelled')
           es.close()
-        } else if (data.status === 'withheld') {
-          setPaymentStatus('withheld')
+        } else if (data.status === 'withheld' || data.status === 'frozen') {
+          setPaymentStatus(data.status)
           if (data.timeLeft !== undefined) {
-            setPayment(prev => prev ? { ...prev, status: 'withheld', frozenTimeLeft: data.timeLeft } : null)
+            setPayment(prev => prev ? { ...prev, status: data.status, frozenTimeLeft: data.timeLeft } : null)
           }
         } else if (data.status === 'pending') {
           setPaymentStatus('pending')
@@ -413,9 +413,9 @@ export default function CheckoutPage({
     setScreenshotBase64(dataUrl)
   }
 
-  const isPaymentWithheld = paymentStatus === 'withheld'
+  const isPaymentWithheld = paymentStatus === 'withheld' || paymentStatus === 'frozen'
   const countdown = useCountdown(payment?.expiresAt ?? null, isPaymentWithheld, payment?.frozenTimeLeft)
-  const expired = paymentStatus !== 'withheld' && payment !== null && countdown.total === 0
+  const expired = paymentStatus === 'pending' && payment !== null && countdown.total === 0
 
   // ---------------------------------------------------------------------------
   // Dynamic Views
@@ -513,24 +513,40 @@ export default function CheckoutPage({
   }
 
   // 5. PENDING SYSTEM AUTO VERIFICATION / WAITING SCREEN
-  if (paymentStatus === 'confirming') {
+  if (paymentStatus === 'confirming' || ((paymentStatus === 'withheld' || paymentStatus === 'frozen') && payment.screenshotUrl)) {
+    const isPaused = paymentStatus === 'withheld' || paymentStatus === 'frozen'
     return (
       <div className="relative min-h-screen w-full bg-transparent text-slate-100 flex flex-col items-center justify-center p-4">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(59,130,246,0.06)_0,transparent_100%)]" />
         <div className="w-full max-w-md bg-[#050a14] border border-blue-500/20 rounded-3xl p-8 shadow-2xl relative overflow-hidden text-center">
-          <div className="relative mx-auto mb-6 h-24 w-24 rounded-full border border-blue-500/30 grid place-items-center bg-blue-500/5">
-            <span className="absolute inset-0 rounded-full border border-blue-500/40 animate-ping opacity-70" />
-            <Loader2 className="h-10 w-10 text-blue-500 animate-spin" />
-          </div>
+          {isPaused ? (
+            <div className="relative mx-auto mb-6 h-24 w-24 rounded-full border border-blue-500/30 grid place-items-center bg-blue-500/5 shadow-[0_0_30px_rgba(59,130,246,0.1)]">
+              <Clock className="h-10 w-10 text-blue-400 animate-pulse" />
+            </div>
+          ) : (
+            <div className="relative mx-auto mb-6 h-24 w-24 rounded-full border border-blue-500/30 grid place-items-center bg-blue-500/5">
+              <span className="absolute inset-0 rounded-full border border-blue-500/40 animate-ping opacity-70" />
+              <Loader2 className="h-10 w-10 text-blue-500 animate-spin" />
+            </div>
+          )}
 
-          <h1 className="text-xl font-bold tracking-tight text-white mb-2">Verifying Transaction</h1>
+          <h1 className="text-xl font-bold tracking-tight text-white mb-2">
+            {isPaused ? "Verification Paused" : "Verifying Transaction"}
+          </h1>
           <p className="text-slate-400 text-xs px-2 mb-6">
-            Your payment proof has been submitted. The gateway matching engine is auditing your transaction and proof screenshot.
+            {isPaused 
+              ? "This transaction has been temporarily withheld/paused by the administrator. The verification is paused and your funds are secure."
+              : "Your payment proof has been submitted. The gateway matching engine is auditing your transaction and proof screenshot."
+            }
           </p>
 
           <div className="bg-[#02050c] rounded-2xl p-4 text-left space-y-2 border border-[#0f2744] mb-6 text-xs text-slate-400">
             <div className="font-semibold text-slate-300 text-center mb-2">Instructions for Evaluation:</div>
-            {verificationType === 'auto' ? (
+            {isPaused ? (
+              <div className="space-y-1">
+                <p>⏳ <strong className="text-blue-400">Transaction Paused:</strong> Administrator action required. Countdown timer is paused. No loss of funds will occur.</p>
+              </div>
+            ) : verificationType === 'auto' ? (
               <div className="space-y-1">
                 <p>🤖 <strong className="text-blue-400">Automated Mode Activated:</strong> The system scanner is automatically validating your UTR reference against bank reports.</p>
                 <p className="pt-2 text-center text-amber-400 animate-pulse font-semibold">Settle will execute automatically in ~12 seconds...</p>
@@ -576,7 +592,18 @@ export default function CheckoutPage({
             <span className="text-blue-500 font-extrabold">X</span>
             <span className="text-slate-100">pay</span>
           </h1>
-          <div className="w-5" /> {/* Spacer to keep header title centered */}
+          <div className="flex items-center">
+            {countdown.total >= 0 && (
+              <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-mono text-xs font-bold border transition-all ${
+                isPaymentWithheld 
+                  ? 'bg-blue-500/10 border-blue-500/30 text-blue-400' 
+                  : 'bg-rose-500/10 border-rose-500/30 text-rose-400'
+              }`}>
+                <Clock className="h-3.5 w-3.5" />
+                <span>{countdown.mm}:{countdown.ss}</span>
+              </div>
+            )}
+          </div>
         </header>
 
         <main className="w-full max-w-lg p-5 flex flex-col flex-1 pb-8">
@@ -761,7 +788,7 @@ export default function CheckoutPage({
   // ---------------------------------------------------------------------------
   return (
     <div className="min-h-screen w-full bg-transparent text-slate-100 flex flex-col items-center">
-      {paymentStatus === "withheld" && (
+      {(paymentStatus === "withheld" || paymentStatus === "frozen") && (
         <div className="w-full max-w-lg px-5 pt-4">
           <div className="bg-blue-500/10 border border-blue-500/30 rounded-2xl p-4 text-xs text-blue-300 flex items-start gap-3">
             <Clock className="h-5 w-5 text-blue-400 shrink-0 mt-0.5 animate-pulse" />
@@ -786,6 +813,16 @@ export default function CheckoutPage({
           <span className="text-slate-100">pay</span>
         </h1>
         <div className="flex items-center gap-4">
+          {countdown.total >= 0 && (
+            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-mono text-xs font-bold border transition-all ${
+              isPaymentWithheld 
+                ? 'bg-blue-500/10 border-blue-500/30 text-blue-400' 
+                : 'bg-rose-500/10 border-rose-500/30 text-rose-400'
+            }`}>
+              <Clock className="h-3.5 w-3.5" />
+              <span>{countdown.mm}:{countdown.ss}</span>
+            </div>
+          )}
           <button
             onClick={handleCancel}
             className="text-slate-400 hover:text-slate-200"
@@ -1092,7 +1129,7 @@ export default function CheckoutPage({
                   </div>
                   
                   {/* Button to generate mock screenshot */}
-                  {/* <div className="pt-2 text-center">
+                  <div className="pt-2 text-center">
                     <button
                       type="button"
                       onClick={generateMockScreenshot}
@@ -1100,7 +1137,7 @@ export default function CheckoutPage({
                     >
                       ✨ Generate Mock PhonePe Payment slip
                     </button>
-                  </div> */}
+                  </div>
                 </div>
 
                 {/* Enforces standard manual vendor/admin audits */}
