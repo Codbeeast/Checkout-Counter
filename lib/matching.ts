@@ -145,13 +145,13 @@ export async function findBestVendorForOrder(
             }
           }
 
-          // Derive deterministic TRON wallet for this vendor
+          // Derive deterministic BEP-20 / BSC wallet for this vendor
           const vendorIdStr = ad.vendorId.toString();
           const cleanId = vendorIdStr.replace(/[^a-zA-Z0-9]/g, "").slice(0, 10);
           const vendorWallet = {
-            address: `TStubVendorAddress_${cleanId || "Default"}`,
+            address: `0xStubVendorAddress_${cleanId || "Default"}`,
             privateKey: "stub_vendor_private_key_mock",
-            path: `m/44'/195'/0'/0/mock`
+            path: `m/44'/60'/0'/0/mock`
           };
 
           eligibleVendors.push({

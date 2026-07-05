@@ -416,9 +416,8 @@ export default function Home() {
         </div>
       </main>
 
-      {/* Footer */}
       <footer className="w-full text-center py-6 text-[10px] text-zinc-600 border-t border-zinc-900 bg-zinc-950/20">
-        OnnxPay Sandbox integration client. Compliant with TRON Shasta networks & MongoDB advertisements.
+        OnnxPay Sandbox integration client. Compliant with BSC BEP-20 networks & MongoDB advertisements.
       </footer>
     </div>
   )
