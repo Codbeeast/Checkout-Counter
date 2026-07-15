@@ -417,6 +417,14 @@ export default function CheckoutPage({
   const countdown = useCountdown(payment?.expiresAt ?? null, isPaymentWithheld, payment?.frozenTimeLeft)
   const expired = paymentStatus === 'pending' && payment !== null && countdown.total === 0
 
+  const isBankCategory = useMemo(() => {
+    if (!payment?.paymentMethod) return false
+    const pm = ALL_PAYMENT_METHODS.find(
+      m => m.id.toLowerCase() === payment.paymentMethod?.toLowerCase() || m.title.toLowerCase() === payment.paymentMethod?.toLowerCase()
+    )
+    return pm?.category === 'Bank' || !!payment.vendorAccountNumber
+  }, [payment?.paymentMethod, payment?.vendorAccountNumber])
+
   // ---------------------------------------------------------------------------
   // Dynamic Views
   // ---------------------------------------------------------------------------
@@ -887,32 +895,48 @@ export default function CheckoutPage({
               </div>
 
               <div className="text-slate-400 text-xs space-y-1 pl-4 leading-relaxed list-decimal">
-                <p>1. Leave the current page and <span className="text-[#f43f5e] font-semibold">send the payment</span> in your UPI Apps</p>
-                <p>2. Take a screenshot of the payment slip and <span className="text-[#f43f5e] font-semibold">return</span> to this page.</p>
-                <p>3. Please strictly follow <span className="text-[#f43f5e] font-semibold">the displayed amount</span> when making the payment. Any discrepancy may result in order <span className="text-[#f43f5e] font-semibold">delays</span> or <span className="text-[#f43f5e] font-semibold">potential loss</span> of funds.</p>
+                {isBankCategory ? (
+                  <>
+                    <p>1. Open your net banking or mobile banking app and initiate a <span className="text-[#f43f5e] font-semibold">bank transfer</span>.</p>
+                    <p>2. Transfer the exact amount to the beneficiary details below.</p>
+                    <p>3. Take a screenshot of the transaction receipt/slip and <span className="text-[#f43f5e] font-semibold">return</span> to this page.</p>
+                  </>
+                ) : (
+                  <>
+                    <p>1. Leave the current page and <span className="text-[#f43f5e] font-semibold">send the payment</span> in your UPI Apps</p>
+                    <p>2. Take a screenshot of the payment slip and <span className="text-[#f43f5e] font-semibold">return</span> to this page.</p>
+                  </>
+                )}
+                <p>Please strictly follow <span className="text-[#f43f5e] font-semibold">the displayed amount</span> when making the payment. Any discrepancy may result in order <span className="text-[#f43f5e] font-semibold">delays</span> or <span className="text-[#f43f5e] font-semibold">potential loss</span> of funds.</p>
               </div>
 
               {/* Vendor Account Details Card */}
               <div className="bg-[#050a14] border border-[#0f2744] rounded-3xl p-4 mt-1 relative overflow-hidden">
                 <div className="flex items-center justify-between pb-2 border-b border-[#0f2744]/60 mb-3 text-xs text-slate-400 font-semibold uppercase tracking-wider">
                   <span className="text-slate-300">Receiving Account Details:</span>
-                  <Badge variant="outline" className="border-blue-500/20 bg-blue-500/5 text-blue-400 text-[10px]">
-                    UPI ID Match
-                  </Badge>
+                  {isBankCategory ? (
+                    <Badge variant="outline" className="border-amber-500/20 bg-amber-500/5 text-amber-400 text-[10px]">
+                      Bank Transfer Match
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="border-blue-500/20 bg-blue-500/5 text-blue-400 text-[10px]">
+                      UPI ID Match
+                    </Badge>
+                  )}
                 </div>
 
-                <div className="grid grid-cols-[1fr_auto] items-center gap-4">
+                <div className={(!isBankCategory || payment.vendorQrCode) ? "grid grid-cols-[1fr_auto] items-center gap-4" : "block space-y-3.5"}>
                   {/* Account detail text lines */}
                   <div className="space-y-2.5">
                     <div>
                       <div className="text-[10px] text-zinc-500 uppercase tracking-wider font-semibold">Beneficiary Name</div>
                       <button
-                        onClick={() => copyText(payment.vendorName || "", "vendor_name")}
+                        onClick={() => copyText(payment.vendorAccountHolder || payment.vendorName || "", "vendor_name")}
                         className="flex items-center gap-1.5 text-sm font-bold text-slate-200 hover:text-white"
-                        disabled={!payment.vendorName}
+                        disabled={!payment.vendorName && !payment.vendorAccountHolder}
                       >
-                        {payment.vendorName || "Not Available"}
-                        {payment.vendorName && (copiedId === "vendor_name" ? (
+                        {payment.vendorAccountHolder || payment.vendorName || "Not Available"}
+                        {(payment.vendorName || payment.vendorAccountHolder) && (copiedId === "vendor_name" ? (
                           <Check className="h-3 w-3 text-emerald-400" />
                         ) : (
                           <Copy className="h-3 w-3 text-slate-500" />
@@ -920,21 +944,76 @@ export default function CheckoutPage({
                       </button>
                     </div>
 
-                    <div>
-                      <div className="text-[10px] text-zinc-500 uppercase tracking-wider font-mono font-semibold">Receiving UPI ID</div>
-                      <button
-                        onClick={() => copyText(payment.vendorUpiId || "", "vendor_upi")}
-                        className="flex items-center gap-1.5 text-sm font-black text-slate-200 hover:text-white font-mono break-all text-left"
-                        disabled={!payment.vendorUpiId}
-                      >
-                        {payment.vendorUpiId || "Not Available"}
-                        {payment.vendorUpiId && (copiedId === "vendor_upi" ? (
-                          <Check className="h-3 w-3 text-emerald-400" />
-                        ) : (
-                          <Copy className="h-3 w-3 text-slate-500" />
-                        ))}
-                      </button>
-                    </div>
+                    {isBankCategory ? (
+                      <>
+                        {payment.vendorBankName && (
+                          <div>
+                            <div className="text-[10px] text-zinc-500 uppercase tracking-wider font-semibold">Bank Name</div>
+                            <button
+                              onClick={() => copyText(payment.vendorBankName || "", "vendor_bank")}
+                              className="flex items-center gap-1.5 text-sm font-bold text-slate-200 hover:text-white"
+                            >
+                              {payment.vendorBankName}
+                              {copiedId === "vendor_bank" ? (
+                                <Check className="h-3 w-3 text-emerald-400" />
+                              ) : (
+                                <Copy className="h-3 w-3 text-slate-500" />
+                              )}
+                            </button>
+                          </div>
+                        )}
+
+                        {payment.vendorAccountNumber && (
+                          <div>
+                            <div className="text-[10px] text-zinc-500 uppercase tracking-wider font-mono font-semibold">Account Number</div>
+                            <button
+                              onClick={() => copyText(payment.vendorAccountNumber || "", "vendor_acc_num")}
+                              className="flex items-center gap-1.5 text-sm font-black text-slate-200 hover:text-white font-mono break-all text-left"
+                            >
+                              {payment.vendorAccountNumber}
+                              {copiedId === "vendor_acc_num" ? (
+                                <Check className="h-3 w-3 text-emerald-400" />
+                              ) : (
+                                <Copy className="h-3 w-3 text-slate-500" />
+                              )}
+                            </button>
+                          </div>
+                        )}
+
+                        {payment.vendorIfscCode && (
+                          <div>
+                            <div className="text-[10px] text-zinc-500 uppercase tracking-wider font-mono font-semibold">IFSC Code</div>
+                            <button
+                              onClick={() => copyText(payment.vendorIfscCode || "", "vendor_ifsc")}
+                              className="flex items-center gap-1.5 text-sm font-black text-slate-200 hover:text-white font-mono break-all text-left"
+                            >
+                              {payment.vendorIfscCode}
+                              {copiedId === "vendor_ifsc" ? (
+                                <Check className="h-3 w-3 text-emerald-400" />
+                              ) : (
+                                <Copy className="h-3 w-3 text-slate-500" />
+                              )}
+                            </button>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <div>
+                        <div className="text-[10px] text-zinc-500 uppercase tracking-wider font-mono font-semibold">Receiving UPI ID</div>
+                        <button
+                          onClick={() => copyText(payment.vendorUpiId || "", "vendor_upi")}
+                          className="flex items-center gap-1.5 text-sm font-black text-slate-200 hover:text-white font-mono break-all text-left"
+                          disabled={!payment.vendorUpiId}
+                        >
+                          {payment.vendorUpiId || "Not Available"}
+                          {payment.vendorUpiId && (copiedId === "vendor_upi" ? (
+                            <Check className="h-3 w-3 text-emerald-400" />
+                          ) : (
+                            <Copy className="h-3 w-3 text-slate-500" />
+                          ))}
+                        </button>
+                      </div>
+                    )}
 
                     <div>
                       <div className="text-[10px] text-zinc-500 uppercase tracking-wider font-semibold">Amount to Deposit</div>
@@ -962,18 +1041,20 @@ export default function CheckoutPage({
                   </div>
 
                   {/* QR Image embedded on the right */}
-                  <div className="relative bg-white p-2 rounded-2xl w-24 h-24 sm:w-28 sm:h-28 shrink-0 flex items-center justify-center select-none shadow-md">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={payment.vendorQrCode || (payment.vendorUpiId 
-                        ? `https://api.qrserver.com/v1/create-qr-code/?size=300x300&bgcolor=ffffff&color=0a1628&data=${encodeURIComponent(`upi://pay?pa=${payment.vendorUpiId}&pn=${encodeURIComponent(payment.vendorName || "Vendor")}`)}` 
-                        : "https://api.qrserver.com/v1/create-qr-code/?size=300x300&bgcolor=ffffff&color=0a1628&data=No%20UPI%20ID%20Configured")}
-                      alt="Payment QR"
-                      className="w-full h-full rounded-lg object-contain"
+                  {(!isBankCategory || payment.vendorQrCode) && (
+                    <div className="relative bg-white p-2 rounded-2xl w-24 h-24 sm:w-28 sm:h-28 shrink-0 flex items-center justify-center select-none shadow-md">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={payment.vendorQrCode || (payment.vendorUpiId 
+                          ? `https://api.qrserver.com/v1/create-qr-code/?size=300x300&bgcolor=ffffff&color=0a1628&data=${encodeURIComponent(`upi://pay?pa=${payment.vendorUpiId}&pn=${encodeURIComponent(payment.vendorName || "Vendor")}`)}` 
+                          : "https://api.qrserver.com/v1/create-qr-code/?size=300x300&bgcolor=ffffff&color=0a1628&data=No%20UPI%20ID%20Configured")}
+                        alt="Payment QR"
+                        className="w-full h-full rounded-lg object-contain"
                     />
                     <div className="absolute inset-0 border border-zinc-200 rounded-2xl pointer-events-none" />
                   </div>
-                </div>
+                )}
+              </div>
 
                 {/* Supported payment app icons */}
                 <div className="mt-3 pt-3 border-t border-zinc-900/60 flex items-center justify-start gap-3">
