@@ -12,9 +12,7 @@ btn.addEventListener('click',()=>{
   "currency": "INR",
   "order_id": "MERC_DELL_9921",
   "customer_details": {
-    "name": "Binod",
-    "email": "binod@email.com",
-    "phone": "+91 9876543210"
+    "name": "Binod"
   },
  
   "callback_url": url,

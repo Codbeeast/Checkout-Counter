@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
     const now = Date.now();
 
     // Save payment to MongoDB
-    const merchantUserId = customer_details.merchant_user_id || body.merchant_user_id || body.merchant_userId || "";
+    const merchantUserId = customer_details?.merchant_user_id || body.merchant_user_id || body.merchant_userId || "";
 
     await savePayment({
       paymentId,
@@ -64,9 +64,9 @@ export async function POST(request: NextRequest) {
       amountUSDT,
       exchangeRate: EXCHANGE_RATE,
       currency: currency || "INR",
-      customerName: customer_details.name || "",
-      customerEmail: customer_details.email || "",
-      customerPhone: customer_details.phone || "",
+      customerName: customer_details?.name || body.customer_name || "",
+      customerEmail: "",
+      customerPhone: "",
       merchantUserId: merchantUserId,
       callbackUrl: callback_url,
       cancelUrl: cancel_url || "",

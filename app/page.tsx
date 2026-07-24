@@ -3,8 +3,8 @@
 import { useState, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import {
-  Zap, Loader2, ArrowRight, CheckCircle2, User, Mail,
-  Phone, IndianRupee, ShieldAlert, Sparkles, RefreshCw,
+  Zap, Loader2, ArrowRight, CheckCircle2, User,
+  IndianRupee, ShieldAlert, Sparkles, RefreshCw,
   ExternalLink, Layers, Globe
 } from 'lucide-react'
 
@@ -12,8 +12,6 @@ export default function Home() {
   // Order configuration states
   const [amountINR, setAmountINR] = useState('1000')
   const [customerName, setCustomerName] = useState('')
-  const [customerEmail, setCustomerEmail] = useState('')
-  const [customerPhone, setCustomerPhone] = useState('+91 9876543210')
   const [merchantUserId, setMerchantUserId] = useState(`USR_${Math.floor(100000 + Math.random() * 900000)}`)
   const [orderId, setOrderId] = useState(`MERC_TEST_${Math.floor(1000 + Math.random() * 9000)}`)
   const [callbackUrl, setCallbackUrl] = useState(process.env.NEXT_PUBLIC_BASE_URL)
@@ -31,11 +29,6 @@ export default function Home() {
     setCustomerName(name)
     setOrderId(`MERC_TEST_${Math.floor(1000 + Math.random() * 9000)}`)
     setMerchantUserId(`USR_${Math.floor(100000 + Math.random() * 900000)}`)
-    if (name === 'Jon Snow') {
-      setCustomerEmail('jon.snow@winterfell.com')
-    } else {
-      setCustomerEmail('')
-    }
   }
 
   // Calculate dynamic USDT estimation (standard process rate ₹86.80)
@@ -63,12 +56,6 @@ export default function Home() {
       return
     }
 
-    if (!customerEmail || !customerEmail.trim()) {
-      setError('Payer Email Address is a required field.')
-      setLoading(false)
-      return
-    }
-
     if (!merchantUserId || !merchantUserId.trim()) {
       setError('Merchant User ID is a required field.')
       setLoading(false)
@@ -88,8 +75,6 @@ export default function Home() {
           order_id: orderId,
           customer_details: {
             name: customerName,
-            email: customerEmail,
-            phone: customerPhone,
             merchant_user_id: merchantUserId,
           },
           callback_url: callbackUrl,
@@ -231,24 +216,6 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Customer Email */}
-              <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-500 mb-1.5">
-                  Payer Email Address <span className="text-red-500 font-bold">*</span>
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500"><Mail className="h-4 w-4" /></span>
-                  <input
-                    type="email"
-                    required
-                    value={customerEmail}
-                    onChange={(e) => setCustomerEmail(e.target.value)}
-                    placeholder="Enter email address"
-                    className="w-full h-11 bg-zinc-950 border border-zinc-800 rounded-xl pl-10 pr-4 text-sm text-white focus:outline-none focus:border-zinc-700 transition"
-                  />
-                </div>
-              </div>
-
               {/* Merchant User ID */}
               <div>
                 <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-500 mb-1.5">
@@ -263,23 +230,6 @@ export default function Home() {
                     onChange={(e) => setMerchantUserId(e.target.value)}
                     placeholder="E.g. USR_90392"
                     className="w-full h-11 bg-zinc-950 border border-zinc-800 rounded-xl pl-10 pr-4 text-sm text-white focus:outline-none focus:border-zinc-700 font-mono transition"
-                  />
-                </div>
-              </div>
-
-              {/* Customer Phone */}
-              <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-500 mb-1.5">
-                  Payer Phone Number <span className="text-cyan-400">*</span>
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500"><Phone className="h-4 w-4" /></span>
-                  <input
-                    type="text"
-                    value={customerPhone}
-                    onChange={(e) => setCustomerPhone(e.target.value)}
-                    placeholder="E.g. +91 98765 43210"
-                    className="w-full h-11 bg-zinc-950 border border-zinc-800 rounded-xl pl-10 pr-4 text-sm text-white focus:outline-none focus:border-zinc-700 transition"
                   />
                 </div>
               </div>
