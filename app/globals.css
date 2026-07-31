@@ -1,25 +1,25 @@
 @import "tailwindcss";
 
 :root {
-  --background: hsl(222 47% 5%);
-  --foreground: hsl(210 40% 98%);
-  --card: hsl(222 47% 8%);
-  --card-foreground: hsl(210 40% 98%);
-  --popover: hsl(222 47% 8%);
-  --popover-foreground: hsl(210 40% 98%);
-  --primary: hsl(187 100% 50%);
-  --primary-foreground: hsl(222 47% 5%);
-  --secondary: hsl(217 33% 17%);
-  --secondary-foreground: hsl(210 40% 98%);
-  --muted: hsl(217 33% 12%);
-  --muted-foreground: hsl(215 20% 65%);
-  --accent: hsl(187 100% 50%);
-  --accent-foreground: hsl(222 47% 5%);
-  --destructive: hsl(0 63% 31%);
-  --destructive-foreground: hsl(210 40% 98%);
-  --border: hsl(217 33% 17%);
-  --input: hsl(217 33% 17%);
-  --ring: hsl(187 100% 50%);
+  --background: #ffffff;
+  --foreground: #0f172a;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --popover: #ffffff;
+  --popover-foreground: #0f172a;
+  --primary: #0284c7;
+  --primary-foreground: #ffffff;
+  --secondary: #f1f5f9;
+  --secondary-foreground: #0f172a;
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+  --accent: #0284c7;
+  --accent-foreground: #ffffff;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --border: #e2e8f0;
+  --input: #e2e8f0;
+  --ring: #0284c7;
   --radius: 0.75rem;
 }
 
@@ -31,10 +31,8 @@
 
 body {
   color: var(--foreground);
-  background-color: #010208;
-  background-image:
-    radial-gradient(ellipse at top, rgba(59, 130, 246, 0.09), transparent 50%),
-    radial-gradient(ellipse at bottom, rgba(139, 92, 246, 0.06), transparent 50%);
+  background-color: #f8fafc !important;
+  background-image: none !important;
   min-height: 100vh;
 }
 

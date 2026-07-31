@@ -77,27 +77,11 @@ function useCountdown(expiresAt: number | null, isPaused: boolean = false, froze
 
 const ALL_PAYMENT_METHODS = [
   { id: 'PhonePe', title: 'PhonePe', desc: 'Instant transfer via PhonePe UPI', category: 'UPI' },
-  { id: 'Google Pay', title: 'Google Pay', desc: 'Instant transfer via Google Pay', category: 'UPI' },
+  { id: 'Google Pay', title: 'Google Pay (GPay)', desc: 'Instant transfer via Google Pay', category: 'UPI' },
   { id: 'Paytm', title: 'Paytm', desc: 'Instant transfer via Paytm UPI', category: 'UPI' },
-  { id: 'UPI', title: 'UPI ID / VPA', desc: 'Any standard UPI application', category: 'UPI' },
-  { id: 'BHIM UPI', title: 'BHIM UPI', desc: 'Government UPI app transfer', category: 'UPI' },
-  { id: 'WhatsApp Pay', title: 'WhatsApp Pay', desc: 'Transfer via WhatsApp Pay', category: 'UPI' },
-  { id: 'IMPS', title: 'IMPS', desc: 'Immediate Payment Service (Bank Transfer)', category: 'Bank' },
-  { id: 'NEFT', title: 'NEFT', desc: 'National Electronic Funds Transfer', category: 'Bank' },
-  { id: 'RTGS', title: 'RTGS', desc: 'Real Time Gross Settlement', category: 'Bank' },
-  { id: 'State Bank of India', title: 'State Bank of India (SBI)', desc: 'SBI Net Banking / Transfer', category: 'Bank' },
-  { id: 'HDFC Bank', title: 'HDFC Bank', desc: 'HDFC Net Banking / Transfer', category: 'Bank' },
-  { id: 'ICICI Bank', title: 'ICICI Bank', desc: 'ICICI Net Banking / Transfer', category: 'Bank' },
-  { id: 'Axis Bank', title: 'Axis Bank', desc: 'Axis Net Banking / Transfer', category: 'Bank' },
-  { id: 'Kotak Mahindra Bank', title: 'Kotak Mahindra Bank', desc: 'Kotak Net Banking / Transfer', category: 'Bank' },
-  { id: 'IndusInd Bank', title: 'IndusInd Bank', desc: 'IndusInd Net Banking / Transfer', category: 'Bank' },
-  { id: 'Yes Bank', title: 'Yes Bank', desc: 'Yes Net Banking / Transfer', category: 'Bank' },
-  { id: 'Punjab National Bank', title: 'Punjab National Bank (PNB)', desc: 'PNB Net Banking / Transfer', category: 'Bank' },
-  { id: 'Bank of Baroda', title: 'Bank of Baroda (BoB)', desc: 'BoB Net Banking / Transfer', category: 'Bank' },
-  { id: 'Union Bank of India', title: 'Union Bank of India', desc: 'Union Net Banking / Transfer', category: 'Bank' },
-  { id: 'Canara Bank', title: 'Canara Bank', desc: 'Canara Net Banking / Transfer', category: 'Bank' },
-  { id: 'Federal Bank', title: 'Federal Bank', desc: 'Federal Net Banking / Transfer', category: 'Bank' },
-  { id: 'IDFC First Bank', title: 'IDFC First Bank', desc: 'IDFC Net Banking / Transfer', category: 'Bank' }
+  { id: 'Bank Transfer', title: 'Bank Transfer', desc: 'Direct IMPS / NEFT Bank Account Transfer', category: 'Bank' },
+  { id: 'UPI', title: 'UPI ID', desc: 'Any standard UPI VPA application', category: 'UPI' },
+  { id: 'IMPS', title: 'IMPS', desc: 'Immediate Payment Service Transfer', category: 'Bank' },
 ]
 
 export default function CheckoutPage({
@@ -432,10 +416,10 @@ export default function CheckoutPage({
   // 1. LOADING SCREEN
   if (loading) {
     return (
-      <div className="relative min-h-screen w-full bg-[#0d0d13] flex items-center justify-center">
+      <div className="relative min-h-screen w-full bg-white flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="h-10 w-10 text-blue-500 animate-spin" />
-          <p className="text-slate-400 text-sm">Synchronizing systems…</p>
+          <p className="text-slate-600 text-sm">Synchronizing systems…</p>
         </div>
       </div>
     )
@@ -444,11 +428,11 @@ export default function CheckoutPage({
   // 2. ERROR SCREEN
   if (error || !payment) {
     return (
-      <div className="relative min-h-screen w-full bg-[#0d0d13] flex items-center justify-center">
+      <div className="relative min-h-screen w-full bg-white flex items-center justify-center">
         <div className="flex flex-col items-center gap-4 text-center px-6">
-          <XCircle className="h-12 w-12 text-rose-400" />
-          <h2 className="text-xl font-semibold text-slate-100">Deposit Order Terminated</h2>
-          <p className="text-sm text-slate-400 max-w-sm">{error || 'Order has expired or been cancelled.'}</p>
+          <XCircle className="h-12 w-12 text-rose-500" />
+          <h2 className="text-xl font-semibold text-slate-900">Deposit Order Terminated</h2>
+          <p className="text-sm text-slate-600 max-w-sm">{error || 'Order has expired or been cancelled.'}</p>
         </div>
       </div>
     )
@@ -457,40 +441,40 @@ export default function CheckoutPage({
   // 3. SUCCESS / COMPLETED VIEW
   if (paymentStatus === 'completed') {
     return (
-      <div className="relative min-h-screen w-full bg-transparent text-slate-100 flex flex-col items-center justify-center p-4">
+      <div className="relative min-h-screen w-full bg-[#f8fafc] text-slate-900 flex flex-col items-center justify-center p-4">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(16,185,129,0.07)_0,transparent_100%)]" />
-        <div className="w-full max-w-md bg-[#050a14] border border-emerald-500/30 rounded-3xl p-8 shadow-2xl relative overflow-hidden text-center">
-          <div className="mx-auto mb-6 h-20 w-20 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 grid place-items-center shadow-[0_0_30px_rgba(52,211,153,0.3)] animate-bounce">
-            <CircleCheck className="h-10 w-10 text-zinc-950" />
+        <div className="w-full max-w-md bg-white border border-emerald-500/30 rounded-3xl p-8 shadow-xl relative overflow-hidden text-center">
+          <div className="mx-auto mb-6 h-20 w-20 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 grid place-items-center shadow-[0_0_30px_rgba(52,211,153,0.2)] animate-bounce">
+            <CircleCheck className="h-10 w-10 text-white" />
           </div>
 
-          <h1 className="text-2xl font-bold tracking-tight text-white mb-2">Deposit Successful!</h1>
-          <p className="text-slate-400 text-sm mb-6">
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 mb-2">Deposit Successful!</h1>
+          <p className="text-slate-600 text-sm mb-6">
             Your transfer has been verified and settled.
           </p>
 
-          <div className="bg-[#02050c] rounded-2xl p-4 text-left space-y-3 border border-[#0f2744] mb-6">
+          <div className="bg-slate-50 rounded-2xl p-4 text-left space-y-3 border border-slate-200 mb-6">
             <div className="flex justify-between text-xs">
-              <span className="text-zinc-500">Deposit Order</span>
-              <span className="text-zinc-300 font-mono">{payment.paymentId.slice(0, 14)}...</span>
+              <span className="text-slate-500">Deposit Order</span>
+              <span className="text-slate-800 font-mono">{payment.paymentId.slice(0, 14)}...</span>
             </div>
             <div className="flex justify-between text-xs">
-              <span className="text-zinc-500">Payer Name</span>
-              <span className="text-zinc-300 font-medium">{payerName || payment.customerName}</span>
+              <span className="text-slate-500">Payer Name</span>
+              <span className="text-slate-800 font-medium">{payerName || payment.customerName}</span>
             </div>
             <div className="flex justify-between text-xs">
-              <span className="text-zinc-500">Matched UTR</span>
-              <span className="text-zinc-300 font-mono">{utrNumber || payment.utrNumber || "N/A"}</span>
+              <span className="text-slate-500">Matched UTR</span>
+              <span className="text-slate-800 font-mono">{utrNumber || payment.utrNumber || "N/A"}</span>
             </div>
-            <Separator className="bg-[#0f2744]" />
+            <Separator className="bg-slate-200" />
             <div className="flex justify-between items-baseline">
-              <span className="text-xs text-zinc-500 font-semibold">Credited Crypto</span>
-              <span className="text-emerald-400 font-bold text-lg">{payment.amountUSDT} USDT</span>
+              <span className="text-xs text-slate-500 font-semibold">Credited Crypto</span>
+              <span className="text-emerald-600 font-bold text-lg">{payment.amountUSDT} USDT</span>
             </div>
           </div>
 
-          <div className="flex items-center justify-center gap-2 text-xs text-zinc-500">
-            <Loader2 className="h-3 w-3 animate-spin text-emerald-400" />
+          <div className="flex items-center justify-center gap-2 text-xs text-slate-500">
+            <Loader2 className="h-3 w-3 animate-spin text-emerald-600" />
             <span>Firing Payment Webhook & Redirecting...</span>
           </div>
         </div>
@@ -501,16 +485,16 @@ export default function CheckoutPage({
   // 4. EXPIRED / CANCELLED VIEW
   if (paymentStatus === 'expired' || paymentStatus === 'cancelled' || expired) {
     return (
-      <div className="relative min-h-screen w-full bg-transparent flex items-center justify-center p-4">
-        <div className="w-full max-w-md bg-[#050a14] border border-red-500/30 rounded-3xl p-8 text-center shadow-xl">
-          <XCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-white mb-2">Deposit Failed</h1>
-          <p className="text-slate-400 text-sm mb-6">
+      <div className="relative min-h-screen w-full bg-[#f8fafc] flex items-center justify-center p-4">
+        <div className="w-full max-w-md bg-white border border-red-200 rounded-3xl p-8 text-center shadow-xl">
+          <XCircle className="h-16 w-16 text-rose-500 mx-auto mb-4" />
+          <h1 className="text-2xl font-bold text-slate-900 mb-2">Deposit Failed</h1>
+          <p className="text-slate-600 text-sm mb-6">
             {paymentStatus === 'cancelled' ? 'This transaction has been flagged and cancelled.' : 'The payment session has expired.'}
           </p>
           {payment.cancelUrl && (
             <a href={window.location.origin}>
-              <Button variant="outline" className="h-11 border-[#0f2744] bg-[#050a14] text-zinc-200 hover:bg-[#0f2744]/40 hover:text-white">
+              <Button variant="outline" className="h-11 border-slate-300 bg-slate-50 text-slate-700 hover:bg-slate-100 hover:text-slate-900">
                 Return to Merchant
               </Button>
             </a>
@@ -524,49 +508,49 @@ export default function CheckoutPage({
   if (paymentStatus === 'confirming' || ((paymentStatus === 'withheld' || paymentStatus === 'frozen') && payment.screenshotUrl)) {
     const isPaused = paymentStatus === 'withheld' || paymentStatus === 'frozen'
     return (
-      <div className="relative min-h-screen w-full bg-transparent text-slate-100 flex flex-col items-center justify-center p-4">
+      <div className="relative min-h-screen w-full bg-[#f8fafc] text-slate-900 flex flex-col items-center justify-center p-4">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(59,130,246,0.06)_0,transparent_100%)]" />
-        <div className="w-full max-w-md bg-[#050a14] border border-blue-500/20 rounded-3xl p-8 shadow-2xl relative overflow-hidden text-center">
+        <div className="w-full max-w-md bg-white border border-slate-200 rounded-3xl p-8 shadow-xl relative overflow-hidden text-center">
           {isPaused ? (
-            <div className="relative mx-auto mb-6 h-24 w-24 rounded-full border border-blue-500/30 grid place-items-center bg-blue-500/5 shadow-[0_0_30px_rgba(59,130,246,0.1)]">
-              <Clock className="h-10 w-10 text-blue-400 animate-pulse" />
+            <div className="relative mx-auto mb-6 h-24 w-24 rounded-full border border-sky-200 grid place-items-center bg-sky-50 shadow-inner">
+              <Clock className="h-10 w-10 text-sky-600 animate-pulse" />
             </div>
           ) : (
-            <div className="relative mx-auto mb-6 h-24 w-24 rounded-full border border-blue-500/30 grid place-items-center bg-blue-500/5">
-              <span className="absolute inset-0 rounded-full border border-blue-500/40 animate-ping opacity-70" />
-              <Loader2 className="h-10 w-10 text-blue-500 animate-spin" />
+            <div className="relative mx-auto mb-6 h-24 w-24 rounded-full border border-sky-200 grid place-items-center bg-sky-50">
+              <span className="absolute inset-0 rounded-full border border-sky-400 animate-ping opacity-50" />
+              <Loader2 className="h-10 w-10 text-sky-600 animate-spin" />
             </div>
           )}
 
-          <h1 className="text-xl font-bold tracking-tight text-white mb-2">
+          <h1 className="text-xl font-bold tracking-tight text-slate-900 mb-2">
             {isPaused ? "Verification Paused" : "Verifying Transaction"}
           </h1>
-          <p className="text-slate-400 text-xs px-2 mb-6">
+          <p className="text-slate-600 text-xs px-2 mb-6">
             {isPaused 
               ? "This transaction has been temporarily withheld/paused by the administrator. The verification is paused and your funds are secure."
               : "Your payment proof has been submitted. The gateway matching engine is auditing your transaction and proof screenshot."
             }
           </p>
 
-          <div className="bg-[#02050c] rounded-2xl p-4 text-left space-y-2 border border-[#0f2744] mb-6 text-xs text-slate-400">
-            <div className="font-semibold text-slate-300 text-center mb-2">Instructions for Evaluation:</div>
+          <div className="bg-slate-50 rounded-2xl p-4 text-left space-y-2 border border-slate-200 mb-6 text-xs text-slate-600">
+            <div className="font-semibold text-slate-800 text-center mb-2">Instructions for Evaluation:</div>
             {isPaused ? (
               <div className="space-y-1">
-                <p>⏳ <strong className="text-blue-400">Transaction Paused:</strong> Administrator action required. Countdown timer is paused. No loss of funds will occur.</p>
+                <p>⏳ <strong className="text-sky-600">Transaction Paused:</strong> Administrator action required. Countdown timer is paused. No loss of funds will occur.</p>
               </div>
             ) : verificationType === 'auto' ? (
               <div className="space-y-1">
-                <p>🤖 <strong className="text-blue-400">Automated Mode Activated:</strong> The system scanner is automatically validating your UTR reference against bank reports.</p>
-                <p className="pt-2 text-center text-amber-400 animate-pulse font-semibold">Settle will execute automatically in ~12 seconds...</p>
+                <p>🤖 <strong className="text-sky-600">Automated Mode Activated:</strong> The system scanner is automatically validating your UTR reference against bank reports.</p>
+                <p className="pt-2 text-center text-amber-600 animate-pulse font-semibold">Settle will execute automatically in ~12 seconds...</p>
               </div>
             ) : (
               <div className="space-y-2">
-                <p>🧑‍💼 <strong className="text-purple-400">Manual Mode Activated:</strong> The merchant requires the matching vendor to review your uploaded proof receipt.</p>
+                <p>🧑‍💼 <strong className="text-purple-600">Manual Mode Activated:</strong> The merchant requires the matching vendor to review your uploaded proof receipt.</p>
                 <div className="pt-2">
                   <a
                     href="/vendor"
                     target="_blank"
-                    className="block text-center bg-purple-500/10 border border-purple-500/30 text-purple-300 hover:bg-purple-500/20 py-2.5 rounded-xl transition font-semibold"
+                    className="block text-center bg-purple-50 border border-purple-200 text-purple-700 hover:bg-purple-100 py-2.5 rounded-xl transition font-semibold"
                   >
                     Open Vendor Panel to Approve ↗
                   </a>
@@ -575,7 +559,7 @@ export default function CheckoutPage({
             )}
           </div>
 
-          <div className="text-[10px] text-zinc-500">Monitoring bank settlement status in real-time.</div>
+          <div className="text-[10px] text-slate-500">Monitoring bank settlement status in real-time.</div>
         </div>
       </div>
     )
@@ -589,23 +573,23 @@ export default function CheckoutPage({
     const estimatedUSDT = parseFloat((payment.amountINR / defaultExchangeRate).toFixed(2))
 
     return (
-      <div className="min-h-screen w-full bg-transparent text-slate-100 flex flex-col items-center">
+      <div className="min-h-screen w-full bg-[#f8fafc] text-slate-900 flex flex-col items-center">
         {/* Navigation Header */}
-        <header className="w-full max-w-lg flex items-center justify-between px-5 py-4 border-b border-[#0f2744]">
-          <button className="text-slate-400 hover:text-slate-200">
+        <header className="w-full max-w-lg flex items-center justify-between px-5 py-4 border-b border-slate-200 bg-white/80 backdrop-blur-md">
+          <button className="text-slate-500 hover:text-slate-900 transition-colors">
             <ChevronLeft className="h-5 w-5" />
           </button>
           <h1 className="text-lg font-black tracking-wider">
-            <span className="text-slate-100">Onn</span>
-            <span className="text-blue-500 font-extrabold">X</span>
-            <span className="text-slate-100">pay</span>
+            <span className="text-slate-900">Onn</span>
+            <span className="text-sky-500 font-extrabold">X</span>
+            <span className="text-slate-900">pay</span>
           </h1>
           <div className="flex items-center">
             {countdown.total >= 0 && (
               <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-mono text-xs font-bold border transition-all ${
                 isPaymentWithheld 
-                  ? 'bg-blue-500/10 border-blue-500/30 text-blue-400' 
-                  : 'bg-rose-500/10 border-rose-500/30 text-rose-400'
+                  ? 'bg-sky-50 border-sky-200 text-sky-600' 
+                  : 'bg-rose-50 border-rose-200 text-rose-600'
               }`}>
                 <Clock className="h-3.5 w-3.5" />
                 <span>{countdown.mm}:{countdown.ss}</span>
@@ -618,21 +602,21 @@ export default function CheckoutPage({
           {/* Matching Engine overlay */}
           {isMatching ? (
             <div className="flex-1 flex flex-col items-center justify-center py-20 text-center">
-              <div className="relative mb-8 h-24 w-24 rounded-full border border-blue-500/20 grid place-items-center bg-blue-500/5 shadow-[0_0_50px_rgba(59,130,246,0.1)]">
-                <span className="absolute inset-0 rounded-full border-2 border-blue-500/20 animate-ping opacity-40" />
-                <span className="absolute inset-2 rounded-full border border-blue-500/30 animate-pulse" />
-                <Loader2 className="h-10 w-10 text-blue-500 animate-spin" />
+              <div className="relative mb-8 h-24 w-24 rounded-full border border-sky-200 grid place-items-center bg-sky-50 shadow-sm">
+                <span className="absolute inset-0 rounded-full border-2 border-sky-300 animate-ping opacity-40" />
+                <span className="absolute inset-2 rounded-full border border-sky-300 animate-pulse" />
+                <Loader2 className="h-10 w-10 text-sky-600 animate-spin" />
               </div>
-              <h3 className="text-xl font-black text-white mb-2 tracking-tight">Finding Order</h3>
-              <p className="text-slate-400 text-xs max-w-sm mb-8 leading-relaxed">
+              <h3 className="text-xl font-black text-slate-900 mb-2 tracking-tight">Finding Order</h3>
+              <p className="text-slate-600 text-xs max-w-sm mb-8 leading-relaxed">
                 Establishing a secure gateway connection to retrieve your order details.
                 This may take a few moments. Please do not close or refresh this page.
               </p>
               
               {/* Sleek Progress Bar */}
-              <div className="w-full max-w-xs bg-zinc-900 border border-zinc-800/80 rounded-full h-2.5 overflow-hidden p-0.5 shadow-inner">
+              <div className="w-full max-w-xs bg-slate-200 border border-slate-300 rounded-full h-2.5 overflow-hidden p-0.5 shadow-inner">
                 <div 
-                  className="bg-gradient-to-r from-blue-600 to-indigo-500 h-full rounded-full transition-all duration-300 ease-out shadow-[0_0_10px_rgba(59,130,246,0.5)]"
+                  className="bg-gradient-to-r from-sky-500 to-indigo-500 h-full rounded-full transition-all duration-300 ease-out shadow-sm"
                   style={{ width: `${Math.min(100, (matchingStep / 5) * 100)}%` }}
                 />
               </div>
@@ -644,11 +628,11 @@ export default function CheckoutPage({
           ) : (
             <>
               {/* Searchable Payment Method Selection */}
-              <div className="text-xs uppercase tracking-wider text-slate-500 mb-2 font-medium">Select Preferred Payment Method</div>
+              <div className="text-xs uppercase tracking-wider text-slate-600 mb-2 font-semibold">Select Preferred Payment Method</div>
               <div ref={dropdownRef} className="relative w-full mb-6">
                 <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">
-                    <Wallet className="h-4 w-4 text-blue-500" />
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                    <Wallet className="h-4 w-4 text-sky-500" />
                   </span>
                   <input
                     type="text"
@@ -659,12 +643,12 @@ export default function CheckoutPage({
                       setDropdownOpen(true)
                     }}
                     placeholder="Search payment method (e.g. PhonePe, Bank Transfer...)"
-                    className="w-full h-12 pl-11 pr-10 bg-[#050a14] border border-[#0f2744] text-white placeholder-slate-500 rounded-2xl text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 transition-all font-semibold"
+                    className="w-full h-12 pl-11 pr-10 bg-slate-100 border border-slate-200 text-slate-900 placeholder-slate-400 rounded-2xl text-sm focus:outline-none focus:border-sky-500 focus:bg-white focus:ring-2 focus:ring-sky-500/20 transition-all font-semibold shadow-xs"
                   />
                   <button 
                     type="button"
                     onClick={() => setDropdownOpen(!dropdownOpen)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 p-1.5"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 p-1.5"
                   >
                     <ChevronLeft className={`h-4 w-4 transition-transform duration-200 ${dropdownOpen ? 'rotate-90' : '-rotate-90'}`} />
                   </button>
@@ -672,7 +656,7 @@ export default function CheckoutPage({
 
                 {/* Dropdown Options List */}
                 {dropdownOpen && (
-                  <div className="absolute left-0 right-0 mt-2 max-h-60 overflow-y-auto bg-[#050a14] border border-[#0f2744] rounded-2xl shadow-2xl z-50 p-2 space-y-1 scrollbar-thin">
+                  <div className="absolute left-0 right-0 mt-2 max-h-60 overflow-y-auto bg-white border border-slate-200 rounded-2xl shadow-xl z-50 p-2 space-y-1 scrollbar-thin">
                     {filteredMethods.length > 0 ? (
                       filteredMethods.map((method) => {
                         const isSelected = selectedMethod === method.id
@@ -686,8 +670,8 @@ export default function CheckoutPage({
                             }}
                             className={`flex items-center justify-between px-4 py-2.5 rounded-xl cursor-pointer transition-all duration-150 ${
                               isSelected 
-                                ? 'bg-blue-600/15 text-blue-400 font-bold border border-blue-500/20' 
-                                : 'hover:bg-zinc-900 text-slate-300 hover:text-white border border-transparent'
+                                ? 'bg-sky-50 text-sky-700 font-bold border border-sky-200' 
+                                : 'hover:bg-slate-50 text-slate-700 hover:text-slate-900 border border-transparent'
                             }`}
                           >
                             <div>
@@ -695,7 +679,7 @@ export default function CheckoutPage({
                               <div className="text-[10px] text-slate-500 font-normal">{method.desc}</div>
                             </div>
                             {isSelected && (
-                              <CircleCheck className="h-4 w-4 text-blue-500" />
+                              <CircleCheck className="h-4 w-4 text-sky-500" />
                             )}
                           </div>
                         )
@@ -706,9 +690,9 @@ export default function CheckoutPage({
                           setSelectedMethod(searchTerm)
                           setDropdownOpen(false)
                         }}
-                        className="px-4 py-3 text-center text-xs text-slate-400 hover:bg-zinc-900 rounded-xl cursor-pointer"
+                        className="px-4 py-3 text-center text-xs text-slate-600 hover:bg-slate-50 rounded-xl cursor-pointer"
                       >
-                        No standard method matches. Tap here to select <strong className="text-blue-400">"{searchTerm}"</strong>
+                        No standard method matches. Tap here to select <strong className="text-sky-600">"{searchTerm}"</strong>
                       </div>
                     )}
                   </div>
@@ -716,9 +700,9 @@ export default function CheckoutPage({
               </div>
 
               {/* Red Guidelines Box */}
-              <div className="bg-[#2c1212]/80 border border-[#4f1a1a]/50 rounded-2xl p-4 text-xs text-[#fca5a5] space-y-2 mb-6">
-                <div className="font-bold uppercase tracking-widest text-[#f87171] mb-1 flex items-center gap-1.5">
-                  <Info className="h-3.5 w-3.5" /> *Important notice
+              <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4 text-xs text-rose-900 space-y-2 mb-6 shadow-xs">
+                <div className="font-bold uppercase tracking-widest text-rose-700 mb-1 flex items-center gap-1.5">
+                  <Info className="h-3.5 w-3.5 text-rose-600" /> *Important notice
                 </div>
                 <div className="flex gap-2">
                   <span>1.</span>
@@ -736,38 +720,38 @@ export default function CheckoutPage({
                   <span>4.</span>
                   <p>Follow the prompts in account to complete your payment.</p>
                 </div>
-                <div className="flex gap-2 font-semibold text-[#f87171]">
+                <div className="flex gap-2 font-semibold text-rose-700">
                   <span>5.</span>
                   <p>Strictly no third-party deposits will be accepted. Any such transactions will be rejected without exception.</p>
                 </div>
               </div>
 
               {/* Payment Details Table Summary */}
-              <div className="bg-[#050a14] border border-[#0f2744] rounded-3xl p-5 shadow-lg mb-8">
-                <div className="flex items-center gap-1.5 text-xs text-zinc-400 font-semibold uppercase tracking-wider mb-4 pb-2 border-b border-[#0f2744]">
-                  <LockKeyhole className="h-3.5 w-3.5 text-blue-400" /> Payment Details
+              <div className="bg-slate-100/90 border border-slate-200 rounded-3xl p-5 shadow-xs mb-8">
+                <div className="flex items-center gap-1.5 text-xs text-slate-600 font-semibold uppercase tracking-wider mb-4 pb-2 border-b border-slate-200">
+                  <LockKeyhole className="h-3.5 w-3.5 text-sky-500" /> Payment Details
                 </div>
                 
                 <div className="space-y-3.5 text-sm">
                   <div className="flex justify-between">
                     <span className="text-slate-500 font-medium">Pay To Account</span>
-                    <span className="text-slate-300 font-mono select-all">{payment.orderId}</span>
+                    <span className="text-slate-900 font-mono font-semibold select-all">{payment.orderId}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-500 font-medium">Deposit Amount</span>
-                    <span className="text-slate-300 font-semibold">{estimatedUSDT} USDT</span>
+                    <span className="text-slate-900 font-semibold">{estimatedUSDT} USDT</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-500 font-medium">Voucher Amount</span>
-                    <span className="text-slate-500">—</span>
+                    <span className="text-slate-400">—</span>
                   </div>
-                  <div className="flex justify-between pb-3 border-b border-[#0f2744]">
+                  <div className="flex justify-between pb-3 border-b border-slate-200">
                     <span className="text-slate-500 font-medium">Voucher Applied</span>
-                    <span className="text-slate-500">—</span>
+                    <span className="text-slate-400">—</span>
                   </div>
                   <div className="flex justify-between items-baseline pt-1">
-                    <span className="text-slate-300 font-bold text-base">Actual Payment Amount</span>
-                    <span className="text-blue-400 font-black text-xl">₹{payment.amountINR.toLocaleString()}.00</span>
+                    <span className="text-slate-900 font-bold text-base">Actual Payment Amount</span>
+                    <span className="text-sky-600 font-black text-xl">₹{payment.amountINR.toLocaleString()}.00</span>
                   </div>
                   <div className="flex justify-end text-[11px] text-slate-500 pt-0.5">
                     <span>≈ {estimatedUSDT} USDT</span>
@@ -779,7 +763,7 @@ export default function CheckoutPage({
               <div className="mt-auto">
                 <Button
                   onClick={handlePayNow}
-                  className="w-full h-12 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-[0_4px_15px_rgba(59,130,246,0.3)] transition-all flex items-center justify-center gap-2"
+                  className="w-full h-12 bg-sky-500 hover:bg-sky-600 text-white font-bold rounded-xl shadow-md shadow-sky-500/20 transition-all flex items-center justify-center gap-2"
                 >
                   Pay Now
                 </Button>
@@ -795,37 +779,37 @@ export default function CheckoutPage({
   // 7. SCREEN 2: P2P TIMELINE DEPOSIT VIEW (Image 2)
   // ---------------------------------------------------------------------------
   return (
-    <div className="min-h-screen w-full bg-transparent text-slate-100 flex flex-col items-center">
+    <div className="min-h-screen w-full bg-[#f8fafc] text-slate-900 flex flex-col items-center">
       {(paymentStatus === "withheld" || paymentStatus === "frozen") && (
         <div className="w-full max-w-lg px-5 pt-4">
-          <div className="bg-blue-500/10 border border-blue-500/30 rounded-2xl p-4 text-xs text-blue-300 flex items-start gap-3">
-            <Clock className="h-5 w-5 text-blue-400 shrink-0 mt-0.5 animate-pulse" />
+          <div className="bg-sky-50 border border-sky-200 rounded-2xl p-4 text-xs text-sky-800 flex items-start gap-3 shadow-xs">
+            <Clock className="h-5 w-5 text-sky-600 shrink-0 mt-0.5 animate-pulse" />
             <div>
-              <div className="font-bold uppercase tracking-wider text-blue-400 mb-1">Transaction Withheld / Paused</div>
+              <div className="font-bold uppercase tracking-wider text-sky-700 mb-1">Transaction Withheld / Paused</div>
               <p className="leading-relaxed">This payment's timer has been temporarily withheld by the platform administrator. The countdown is paused and your funds are secure.</p>
             </div>
           </div>
         </div>
       )}
       {/* Navigation Header with cancel X */}
-      <header className="w-full max-w-lg flex items-center justify-between px-5 py-4 border-b border-[#0f2744]">
+      <header className="w-full max-w-lg flex items-center justify-between px-5 py-4 border-b border-slate-200 bg-white/80 backdrop-blur-md">
         <button
           onClick={handleCancel}
-          className="text-slate-400 hover:text-slate-200"
+          className="text-slate-500 hover:text-slate-900 transition-colors"
         >
           <ChevronLeft className="h-5 w-5" />
         </button>
-        <h1 className="text-lg font-black tracking-wider text-white">
-          <span className="text-slate-100">Onn</span>
-          <span className="text-blue-500 font-extrabold">X</span>
-          <span className="text-slate-100">pay</span>
+        <h1 className="text-lg font-black tracking-wider">
+          <span className="text-slate-900">Onn</span>
+          <span className="text-sky-500 font-extrabold">X</span>
+          <span className="text-slate-900">pay</span>
         </h1>
         <div className="flex items-center gap-4">
           {countdown.total >= 0 && (
             <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-mono text-xs font-bold border transition-all ${
               isPaymentWithheld 
-                ? 'bg-blue-500/10 border-blue-500/30 text-blue-400' 
-                : 'bg-rose-500/10 border-rose-500/30 text-rose-400'
+                ? 'bg-sky-50 border-sky-200 text-sky-600' 
+                : 'bg-rose-50 border-rose-200 text-rose-600'
             }`}>
               <Clock className="h-3.5 w-3.5" />
               <span>{countdown.mm}:{countdown.ss}</span>
@@ -833,7 +817,7 @@ export default function CheckoutPage({
           )}
           <button
             onClick={handleCancel}
-            className="text-slate-400 hover:text-slate-200"
+            className="text-slate-500 hover:text-slate-900 transition-colors"
           >
             <X className="h-5 w-5" />
           </button>
@@ -842,36 +826,34 @@ export default function CheckoutPage({
 
       <main className="w-full max-w-lg p-5 flex flex-col flex-1 pb-10">
         {/* Dynamic Order Number Clip */}
-        <div className="flex items-center justify-between bg-[#02050c]/60 border border-[#0f2744] rounded-xl px-4 py-2 text-xs mb-6 text-slate-400 select-none">
+        <div className="flex items-center justify-between bg-slate-100 border border-slate-200 rounded-xl px-4 py-2 text-xs mb-6 text-slate-600 select-none shadow-xs">
           <span>Order.NO</span>
           <button
             onClick={() => copyText(paymentId, "order")}
-            className="flex items-center gap-1.5 text-zinc-300 font-mono font-bold hover:text-white"
+            className="flex items-center gap-1.5 text-slate-900 font-mono font-bold hover:text-sky-600 transition-colors"
           >
             {paymentId}
             {copiedId === "order" ? (
-              <Check className="h-3.5 w-3.5 text-emerald-400" />
+              <Check className="h-3.5 w-3.5 text-emerald-600" />
             ) : (
-              <Copy className="h-3.5 w-3.5 text-slate-500" />
+              <Copy className="h-3.5 w-3.5 text-slate-400" />
             )}
           </button>
         </div>
 
         {/* Transaction Amount Summary Card */}
-        <div className="bg-[#050a14] border border-[#0f2744] rounded-3xl p-5 mb-6 shadow-lg relative overflow-hidden">
-          <div className="pointer-events-none absolute -right-10 -bottom-10 h-32 w-32 rounded-full bg-amber-500/5 blur-2xl" />
-          
+        <div className="bg-slate-100/90 border border-slate-200 rounded-3xl p-5 mb-6 shadow-xs relative overflow-hidden">
           <div className="grid grid-cols-2 gap-4 text-center">
             <div className="space-y-1">
-              <span className="text-[10px] uppercase tracking-wider text-zinc-500 font-bold block">Pay Amount</span>
-              <span className="text-lg font-black text-[#fbbf24] block">
+              <span className="text-[10px] uppercase tracking-wider text-slate-500 font-bold block">Pay Amount</span>
+              <span className="text-lg font-black text-amber-600 block">
                 ₹{payment.amountINR.toLocaleString()}.00
               </span>
             </div>
             
-            <div className="space-y-1 border-l border-[#0f2744]">
-              <span className="text-[10px] uppercase tracking-wider text-zinc-500 font-bold block">Receive USDT</span>
-              <span className="text-lg font-black text-emerald-400 block">
+            <div className="space-y-1 border-l border-slate-200">
+              <span className="text-[10px] uppercase tracking-wider text-slate-500 font-bold block">Receive USDT</span>
+              <span className="text-lg font-black text-emerald-600 block">
                 {payment.amountUSDT} USDT
               </span>
             </div>
@@ -881,45 +863,45 @@ export default function CheckoutPage({
         {/* TIMELINE PROGRESS SECTION */}
         <div className="relative pl-7 flex flex-col gap-8 flex-1">
           {/* Vertical Golden Line */}
-          <div className="absolute left-[9px] top-2 bottom-3 w-[1.5px] bg-[#fbbf24] rounded-full" />
+          <div className="absolute left-[9px] top-2 bottom-3 w-[1.5px] bg-amber-400 rounded-full" />
 
           {/* STEP 1: SEND PAYMENT */}
           <div className="relative">
             {/* Golden Circle Dot */}
-            <div className="absolute -left-[23px] top-1.5 h-3.5 w-3.5 rounded-full bg-[#fbbf24] border-4 border-[#0d0d12] shadow-[0_0_8px_rgba(251,191,36,0.6)]" />
+            <div className="absolute -left-[23px] top-1.5 h-3.5 w-3.5 rounded-full bg-amber-400 border-4 border-[#f8fafc] shadow-xs" />
 
             <div className="flex flex-col gap-3">
               <div className="flex items-center gap-2">
-                <span className="text-sm font-bold text-white">1</span>
-                <h3 className="text-sm font-bold text-white">Send Payment</h3>
+                <span className="text-sm font-bold text-slate-900">1</span>
+                <h3 className="text-sm font-bold text-slate-900">Send Payment</h3>
               </div>
 
-              <div className="text-slate-400 text-xs space-y-1 pl-4 leading-relaxed list-decimal">
+              <div className="text-slate-600 text-xs space-y-1 pl-4 leading-relaxed list-decimal">
                 {isBankCategory ? (
                   <>
-                    <p>1. Open your net banking or mobile banking app and initiate a <span className="text-[#f43f5e] font-semibold">bank transfer</span>.</p>
+                    <p>1. Open your net banking or mobile banking app and initiate a <span className="text-rose-600 font-semibold">bank transfer</span>.</p>
                     <p>2. Transfer the exact amount to the beneficiary details below.</p>
-                    <p>3. Take a screenshot of the transaction receipt/slip and <span className="text-[#f43f5e] font-semibold">return</span> to this page.</p>
+                    <p>3. Take a screenshot of the transaction receipt/slip and <span className="text-rose-600 font-semibold">return</span> to this page.</p>
                   </>
                 ) : (
                   <>
-                    <p>1. Leave the current page and <span className="text-[#f43f5e] font-semibold">send the payment</span> in your UPI Apps</p>
-                    <p>2. Take a screenshot of the payment slip and <span className="text-[#f43f5e] font-semibold">return</span> to this page.</p>
+                    <p>1. Leave the current page and <span className="text-rose-600 font-semibold">send the payment</span> in your UPI Apps</p>
+                    <p>2. Take a screenshot of the payment slip and <span className="text-rose-600 font-semibold">return</span> to this page.</p>
                   </>
                 )}
-                <p>Please strictly follow <span className="text-[#f43f5e] font-semibold">the displayed amount</span> when making the payment. Any discrepancy may result in order <span className="text-[#f43f5e] font-semibold">delays</span> or <span className="text-[#f43f5e] font-semibold">potential loss</span> of funds.</p>
+                <p>Please strictly follow <span className="text-rose-600 font-semibold">the displayed amount</span> when making the payment. Any discrepancy may result in order <span className="text-rose-600 font-semibold">delays</span> or <span className="text-rose-600 font-semibold">potential loss</span> of funds.</p>
               </div>
 
               {/* Vendor Account Details Card */}
-              <div className="bg-[#050a14] border border-[#0f2744] rounded-3xl p-4 mt-1 relative overflow-hidden">
-                <div className="flex items-center justify-between pb-2 border-b border-[#0f2744]/60 mb-3 text-xs text-slate-400 font-semibold uppercase tracking-wider">
-                  <span className="text-slate-300">Receiving Account Details:</span>
+              <div className="bg-slate-100/90 border border-slate-200 rounded-3xl p-4 mt-1 relative overflow-hidden shadow-xs">
+                <div className="flex items-center justify-between pb-2 border-b border-slate-200 mb-3 text-xs text-slate-600 font-semibold uppercase tracking-wider">
+                  <span className="text-slate-800">Receiving Account Details:</span>
                   {isBankCategory ? (
-                    <Badge variant="outline" className="border-amber-500/20 bg-amber-500/5 text-amber-400 text-[10px]">
+                    <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700 text-[10px]">
                       Bank Transfer Match
                     </Badge>
                   ) : (
-                    <Badge variant="outline" className="border-blue-500/20 bg-blue-500/5 text-blue-400 text-[10px]">
+                    <Badge variant="outline" className="border-sky-200 bg-sky-50 text-sky-700 text-[10px]">
                       UPI ID Match
                     </Badge>
                   )}
@@ -929,17 +911,17 @@ export default function CheckoutPage({
                   {/* Account detail text lines */}
                   <div className="space-y-2.5">
                     <div>
-                      <div className="text-[10px] text-zinc-500 uppercase tracking-wider font-semibold">Beneficiary Name</div>
+                      <div className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Beneficiary Name</div>
                       <button
                         onClick={() => copyText(payment.vendorAccountHolder || payment.vendorName || "", "vendor_name")}
-                        className="flex items-center gap-1.5 text-sm font-bold text-slate-200 hover:text-white"
+                        className="flex items-center gap-1.5 text-sm font-bold text-slate-900 hover:text-sky-600 transition-colors"
                         disabled={!payment.vendorName && !payment.vendorAccountHolder}
                       >
                         {payment.vendorAccountHolder || payment.vendorName || "Not Available"}
                         {(payment.vendorName || payment.vendorAccountHolder) && (copiedId === "vendor_name" ? (
-                          <Check className="h-3 w-3 text-emerald-400" />
+                          <Check className="h-3 w-3 text-emerald-600" />
                         ) : (
-                          <Copy className="h-3 w-3 text-slate-500" />
+                          <Copy className="h-3 w-3 text-slate-400" />
                         ))}
                       </button>
                     </div>
@@ -948,16 +930,16 @@ export default function CheckoutPage({
                       <>
                         {payment.vendorBankName && (
                           <div>
-                            <div className="text-[10px] text-zinc-500 uppercase tracking-wider font-semibold">Bank Name</div>
+                            <div className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Bank Name</div>
                             <button
                               onClick={() => copyText(payment.vendorBankName || "", "vendor_bank")}
-                              className="flex items-center gap-1.5 text-sm font-bold text-slate-200 hover:text-white"
+                              className="flex items-center gap-1.5 text-sm font-bold text-slate-900 hover:text-sky-600 transition-colors"
                             >
                               {payment.vendorBankName}
                               {copiedId === "vendor_bank" ? (
-                                <Check className="h-3 w-3 text-emerald-400" />
+                                <Check className="h-3 w-3 text-emerald-600" />
                               ) : (
-                                <Copy className="h-3 w-3 text-slate-500" />
+                                <Copy className="h-3 w-3 text-slate-400" />
                               )}
                             </button>
                           </div>
@@ -965,16 +947,16 @@ export default function CheckoutPage({
 
                         {payment.vendorAccountNumber && (
                           <div>
-                            <div className="text-[10px] text-zinc-500 uppercase tracking-wider font-mono font-semibold">Account Number</div>
+                            <div className="text-[10px] text-slate-500 uppercase tracking-wider font-mono font-semibold">Account Number</div>
                             <button
                               onClick={() => copyText(payment.vendorAccountNumber || "", "vendor_acc_num")}
-                              className="flex items-center gap-1.5 text-sm font-black text-slate-200 hover:text-white font-mono break-all text-left"
+                              className="flex items-center gap-1.5 text-sm font-black text-slate-900 hover:text-sky-600 transition-colors font-mono break-all text-left"
                             >
                               {payment.vendorAccountNumber}
                               {copiedId === "vendor_acc_num" ? (
-                                <Check className="h-3 w-3 text-emerald-400" />
+                                <Check className="h-3 w-3 text-emerald-600" />
                               ) : (
-                                <Copy className="h-3 w-3 text-slate-500" />
+                                <Copy className="h-3 w-3 text-slate-400" />
                               )}
                             </button>
                           </div>
@@ -982,16 +964,16 @@ export default function CheckoutPage({
 
                         {payment.vendorIfscCode && (
                           <div>
-                            <div className="text-[10px] text-zinc-500 uppercase tracking-wider font-mono font-semibold">IFSC Code</div>
+                            <div className="text-[10px] text-slate-500 uppercase tracking-wider font-mono font-semibold">IFSC Code</div>
                             <button
                               onClick={() => copyText(payment.vendorIfscCode || "", "vendor_ifsc")}
-                              className="flex items-center gap-1.5 text-sm font-black text-slate-200 hover:text-white font-mono break-all text-left"
+                              className="flex items-center gap-1.5 text-sm font-black text-slate-900 hover:text-sky-600 transition-colors font-mono break-all text-left"
                             >
                               {payment.vendorIfscCode}
                               {copiedId === "vendor_ifsc" ? (
-                                <Check className="h-3 w-3 text-emerald-400" />
+                                <Check className="h-3 w-3 text-emerald-600" />
                               ) : (
-                                <Copy className="h-3 w-3 text-slate-500" />
+                                <Copy className="h-3 w-3 text-slate-400" />
                               )}
                             </button>
                           </div>
@@ -999,41 +981,41 @@ export default function CheckoutPage({
                       </>
                     ) : (
                       <div>
-                        <div className="text-[10px] text-zinc-500 uppercase tracking-wider font-mono font-semibold">Receiving UPI ID</div>
+                        <div className="text-[10px] text-slate-500 uppercase tracking-wider font-mono font-semibold">Receiving UPI ID</div>
                         <button
                           onClick={() => copyText(payment.vendorUpiId || "", "vendor_upi")}
-                          className="flex items-center gap-1.5 text-sm font-black text-slate-200 hover:text-white font-mono break-all text-left"
+                          className="flex items-center gap-1.5 text-sm font-black text-slate-900 hover:text-sky-600 transition-colors font-mono break-all text-left"
                           disabled={!payment.vendorUpiId}
                         >
                           {payment.vendorUpiId || "Not Available"}
                           {payment.vendorUpiId && (copiedId === "vendor_upi" ? (
-                            <Check className="h-3 w-3 text-emerald-400" />
+                            <Check className="h-3 w-3 text-emerald-600" />
                           ) : (
-                            <Copy className="h-3 w-3 text-slate-500" />
+                            <Copy className="h-3 w-3 text-slate-400" />
                           ))}
                         </button>
                       </div>
                     )}
 
                     <div>
-                      <div className="text-[10px] text-zinc-500 uppercase tracking-wider font-semibold">Amount to Deposit</div>
+                      <div className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Amount to Deposit</div>
                       <button
                         onClick={() => copyText(String(payment.amountINR), "amount_inr")}
-                        className="flex items-center gap-1.5 text-base font-extrabold text-[#fbbf24] hover:text-[#fbbf24]/80 text-left font-mono"
+                        className="flex items-center gap-1.5 text-base font-extrabold text-amber-600 hover:text-amber-700 text-left font-mono"
                       >
                         ₹{payment.amountINR.toLocaleString()}.00
                         {copiedId === "amount_inr" ? (
-                          <Check className="h-3.5 w-3.5 text-emerald-400" />
+                          <Check className="h-3.5 w-3.5 text-emerald-600" />
                         ) : (
-                          <Copy className="h-3.5 w-3.5 text-slate-500" />
+                          <Copy className="h-3.5 w-3.5 text-slate-400" />
                         )}
                       </button>
                     </div>
 
                     <div className="pt-1">
                       <div>
-                        <div className="text-[10px] text-zinc-500 uppercase tracking-wider font-semibold">Receive USDT</div>
-                        <span className="text-xs font-bold text-[#10b981] block pt-0.5 font-mono">
+                        <div className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Receive USDT</div>
+                        <span className="text-xs font-bold text-emerald-600 block pt-0.5 font-mono">
                           {payment.amountUSDT} USDT
                         </span>
                       </div>
@@ -1042,7 +1024,7 @@ export default function CheckoutPage({
 
                   {/* QR Image embedded on the right */}
                   {(!isBankCategory || payment.vendorQrCode) && (
-                    <div className="relative bg-white p-2 rounded-2xl w-24 h-24 sm:w-28 sm:h-28 shrink-0 flex items-center justify-center select-none shadow-md">
+                    <div className="relative bg-white p-2 rounded-2xl w-24 h-24 sm:w-28 sm:h-28 shrink-0 flex items-center justify-center select-none shadow-sm border border-slate-200">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={payment.vendorQrCode || (payment.vendorUpiId 
@@ -1051,47 +1033,47 @@ export default function CheckoutPage({
                         alt="Payment QR"
                         className="w-full h-full rounded-lg object-contain"
                     />
-                    <div className="absolute inset-0 border border-zinc-200 rounded-2xl pointer-events-none" />
+                    <div className="absolute inset-0 border border-slate-200 rounded-2xl pointer-events-none" />
                   </div>
                 )}
               </div>
 
                 {/* Supported payment app icons */}
-                <div className="mt-3 pt-3 border-t border-zinc-900/60 flex items-center justify-start gap-3">
+                <div className="mt-3 pt-3 border-t border-slate-200 flex items-center justify-start gap-3">
                   {payment.paymentMethod ? (
                     (() => {
                       const method = payment.paymentMethod.toLowerCase();
                       if (method === "phonepe") {
                         return (
-                          <span className="h-6 px-3 bg-purple-500/10 border border-purple-500/20 rounded-lg flex items-center justify-center text-[10px] font-bold text-purple-400 shadow-sm">
+                          <span className="h-6 px-3 bg-purple-50 border border-purple-200 rounded-lg flex items-center justify-center text-[10px] font-bold text-purple-700 shadow-xs">
                             PhonePe Only
                           </span>
                         );
                       }
                       if (method === "gpay" || method === "google pay") {
                         return (
-                          <span className="h-6 px-3 bg-blue-500/10 border border-blue-500/20 rounded-lg flex items-center justify-center text-[10px] font-bold text-blue-400 shadow-sm">
+                          <span className="h-6 px-3 bg-sky-50 border border-sky-200 rounded-lg flex items-center justify-center text-[10px] font-bold text-sky-700 shadow-xs">
                             Google Pay Only
                           </span>
                         );
                       }
                       if (method === "paytm") {
                         return (
-                          <span className="h-6 px-3 bg-sky-500/10 border border-sky-500/20 rounded-lg flex items-center justify-center text-[10px] font-bold text-sky-400 shadow-sm">
+                          <span className="h-6 px-3 bg-sky-50 border border-sky-200 rounded-lg flex items-center justify-center text-[10px] font-bold text-sky-700 shadow-xs">
                             Paytm Only
                           </span>
                         );
                       }
                       if (method === "imps") {
                         return (
-                          <span className="h-6 px-3 bg-amber-500/10 border border-amber-500/20 rounded-lg flex items-center justify-center text-[10px] font-bold text-amber-400 shadow-sm">
+                          <span className="h-6 px-3 bg-amber-50 border border-amber-200 rounded-lg flex items-center justify-center text-[10px] font-bold text-amber-700 shadow-xs">
                             IMPS Bank Transfer
                           </span>
                         );
                       }
                       if (method === "bank transfer") {
                         return (
-                          <span className="h-6 px-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg flex items-center justify-center text-[10px] font-bold text-emerald-400 shadow-sm">
+                          <span className="h-6 px-3 bg-emerald-50 border border-emerald-200 rounded-lg flex items-center justify-center text-[10px] font-bold text-emerald-700 shadow-xs">
                             Bank Transfer
                           </span>
                         );
@@ -1099,18 +1081,18 @@ export default function CheckoutPage({
                       // For general UPI selection, show the standard supported apps
                       return (
                         <>
-                          <span className="h-5 w-12 bg-white/5 border border-[#0f2744] rounded-lg flex items-center justify-center text-[10px] font-bold text-zinc-400">GPay</span>
-                          <span className="h-5 w-12 bg-white/5 border border-[#0f2744] rounded-lg flex items-center justify-center text-[10px] font-bold text-zinc-400">PhonePe</span>
-                          <span className="h-5 w-12 bg-white/5 border border-[#0f2744] rounded-lg flex items-center justify-center text-[10px] font-bold text-zinc-400">Paytm</span>
-                          <span className="h-5 w-12 bg-white/5 border border-[#0f2744] rounded-lg flex items-center justify-center text-[10px] font-bold text-zinc-400">UPI</span>
+                          <span className="h-5 w-12 bg-white border border-slate-200 rounded-lg flex items-center justify-center text-[10px] font-bold text-slate-600 shadow-xs">GPay</span>
+                          <span className="h-5 w-12 bg-white border border-slate-200 rounded-lg flex items-center justify-center text-[10px] font-bold text-slate-600 shadow-xs">PhonePe</span>
+                          <span className="h-5 w-12 bg-white border border-slate-200 rounded-lg flex items-center justify-center text-[10px] font-bold text-slate-600 shadow-xs">Paytm</span>
+                          <span className="h-5 w-12 bg-white border border-slate-200 rounded-lg flex items-center justify-center text-[10px] font-bold text-slate-600 shadow-xs">UPI</span>
                         </>
                       );
                     })()
                   ) : (
                     <>
-                      <span className="h-5 w-12 bg-white/5 border border-[#0f2744] rounded-lg flex items-center justify-center text-[10px] font-bold text-zinc-400">GPay</span>
-                      <span className="h-5 w-12 bg-white/5 border border-[#0f2744] rounded-lg flex items-center justify-center text-[10px] font-bold text-zinc-400">PhonePe</span>
-                      <span className="h-5 w-12 bg-white/5 border border-[#0f2744] rounded-lg flex items-center justify-center text-[10px] font-bold text-zinc-400">Paytm</span>
+                      <span className="h-5 w-12 bg-white border border-slate-200 rounded-lg flex items-center justify-center text-[10px] font-bold text-slate-600 shadow-xs">GPay</span>
+                      <span className="h-5 w-12 bg-white border border-slate-200 rounded-lg flex items-center justify-center text-[10px] font-bold text-slate-600 shadow-xs">PhonePe</span>
+                      <span className="h-5 w-12 bg-white border border-slate-200 rounded-lg flex items-center justify-center text-[10px] font-bold text-slate-600 shadow-xs">Paytm</span>
                     </>
                   )}
                 </div>
@@ -1121,26 +1103,26 @@ export default function CheckoutPage({
           {/* STEP 2: CONFIRM PAYMENT */}
           <div className="relative">
             {/* Golden Circle Dot */}
-            <div className="absolute -left-[23px] top-1.5 h-3.5 w-3.5 rounded-full bg-[#fbbf24] border-4 border-[#0d0d12] shadow-[0_0_8px_rgba(251,191,36,0.6)]" />
+            <div className="absolute -left-[23px] top-1.5 h-3.5 w-3.5 rounded-full bg-amber-400 border-4 border-[#f8fafc] shadow-xs" />
 
             <div className="flex flex-col gap-3">
               <div className="flex items-center gap-2">
-                <span className="text-sm font-bold text-white">2</span>
-                <h3 className="text-sm font-bold text-white">Confirm Payment</h3>
+                <span className="text-sm font-bold text-slate-900">2</span>
+                <h3 className="text-sm font-bold text-slate-900">Confirm Payment</h3>
               </div>
 
-              <div className="text-slate-400 text-xs space-y-1 pl-4 leading-relaxed">
-                <p>Enter account holder's name and <span className="text-[#f43f5e] font-semibold">upload payment slip</span> to confirm your payment.</p>
-                <p className="text-[#f43f5e] font-semibold text-[11px] pt-1">
+              <div className="text-slate-600 text-xs space-y-1 pl-4 leading-relaxed">
+                <p>Enter account holder's name and <span className="text-rose-600 font-semibold">upload payment slip</span> to confirm your payment.</p>
+                <p className="text-rose-600 font-semibold text-[11px] pt-1">
                   The payer's name must be the same as the name registered with the bank account, Please change it manually in the event of any discrepancies. *
                 </p>
               </div>
 
               {/* Form Input fields card */}
-              <div className="bg-[#050a14] border border-[#0f2744] rounded-3xl p-5 mt-1 space-y-4">
+              <div className="bg-slate-100/90 border border-slate-200 rounded-3xl p-5 mt-1 space-y-4 shadow-xs">
                 {/* Payer Name Input */}
                 <div>
-                  <label className="block text-xs font-semibold text-zinc-400 mb-1.5 uppercase tracking-wider">
+                  <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">
                     Payer Name <span className="text-rose-500">*</span>
                   </label>
                   <input
@@ -1148,23 +1130,23 @@ export default function CheckoutPage({
                     value={payerName}
                     onChange={(e) => setPayerName(e.target.value)}
                     placeholder="Please enter your name"
-                    className="w-full h-11 bg-[#02050c] border border-[#0f2744] text-white rounded-xl px-4 text-sm focus:outline-none focus:border-blue-500 transition"
+                    className="w-full h-11 bg-white border border-slate-200 text-slate-900 placeholder-slate-400 rounded-xl px-4 text-sm focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500/20 transition-all font-medium shadow-xs"
                   />
                 </div>
 
                 {/* Screenshot proof upload zone */}
                 <div>
-                  <label className="block text-xs font-semibold text-zinc-400 mb-2 uppercase tracking-wider">
+                  <label className="block text-xs font-semibold text-slate-600 mb-2 uppercase tracking-wider">
                     Upload Payment Proof <span className="text-rose-500">*</span>
                   </label>
 
                   {proofError && (
-                    <div className="mb-3 p-3 bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl text-xs font-semibold animate-pulse">
+                    <div className="mb-3 p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs font-semibold animate-pulse">
                       {proofError}
                     </div>
                   )}
 
-                  <div className="relative border border-dashed border-[#0f2744] bg-[#02050c]/40 hover:bg-[#02050c]/70 rounded-2xl p-6 text-center transition flex flex-col items-center justify-center min-h-[120px] select-none cursor-pointer">
+                  <div className="relative border border-dashed border-slate-300 bg-white hover:bg-slate-50/80 rounded-2xl p-6 text-center transition flex flex-col items-center justify-center min-h-[120px] select-none cursor-pointer shadow-xs">
                     <input
                       type="file"
                       accept="image/*"
@@ -1187,7 +1169,7 @@ export default function CheckoutPage({
                         <img
                           src={screenshotBase64}
                           alt="Screenshot Proof Preview"
-                          className="max-h-28 rounded-lg object-contain border border-[#0f2744]"
+                          className="max-h-28 rounded-lg object-contain border border-slate-200 shadow-sm"
                         />
                         <button
                           type="button"
@@ -1203,8 +1185,8 @@ export default function CheckoutPage({
                       </div>
                     ) : (
                       <>
-                        <Upload className="h-6 w-6 text-zinc-600 mb-2" />
-                        <span className="text-xs text-zinc-500">Upload</span>
+                        <Upload className="h-6 w-6 text-slate-400 mb-2" />
+                        <span className="text-xs text-slate-500 font-medium">Upload</span>
                       </>
                     )}
                   </div>
@@ -1214,28 +1196,24 @@ export default function CheckoutPage({
                     <button
                       type="button"
                       onClick={generateMockScreenshot}
-                      className="text-[11px] text-[#fbbf24] hover:underline font-semibold"
+                      className="text-[11px] text-amber-600 hover:underline font-semibold"
                     >
                       ✨ Generate Mock PhonePe Payment slip
                     </button>
                   </div>
                 </div>
-
-                {/* Enforces standard manual vendor/admin audits */}
-
-                {/* Error messages are now rendered dynamically above the upload proof box */}
               </div>
             </div>
           </div>
         </div>
 
         {/* BOTTOM ACTION BUTTON BAR */}
-        <div className="mt-8 grid grid-cols-[100px_1fr] gap-3 pt-4 border-t border-zinc-900/50">
+        <div className="mt-8 grid grid-cols-[100px_1fr] gap-3 pt-4 border-t border-slate-200">
           <Button
             type="button"
             variant="outline"
             onClick={handleCancel}
-            className="h-12 bg-white text-zinc-900 border-white hover:bg-zinc-100 hover:text-zinc-950 font-bold rounded-xl shadow-md"
+            className="h-12 bg-slate-200 text-slate-800 border-slate-300 hover:bg-slate-300 font-bold rounded-xl shadow-xs"
           >
             Cancel
           </Button>
@@ -1244,7 +1222,7 @@ export default function CheckoutPage({
             type="button"
             onClick={handleSubmitProof}
             disabled={isSubmittingProof}
-            className="h-12 bg-[#fbbf24] hover:bg-[#f59e0b] text-[#0d0d12] font-black rounded-xl shadow-[0_4px_15px_rgba(251,191,36,0.25)] transition-all flex items-center justify-center"
+            className="h-12 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-xl shadow-md shadow-amber-500/20 transition-all flex items-center justify-center"
           >
             {isSubmittingProof ? (
               <Loader2 className="h-5 w-5 animate-spin" />
