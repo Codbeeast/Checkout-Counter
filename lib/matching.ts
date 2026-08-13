@@ -64,11 +64,22 @@ export async function findBestVendorForOrder(
         continue;
       }
 
-      // 2. Check Limits
+      // 2. Check Limits, Available USDT Quantity & Capacity
       const minLimit = Number(ad.minLimit);
       const maxLimit = Number(ad.maxLimit);
+      const exchangeRate = Number(ad.fixedPrice) || Number(ad.price) || 0;
 
-      if (amountINR < minLimit || amountINR > maxLimit) {
+      if (exchangeRate <= 0) continue;
+
+      const matchableQty = Number(ad.matchableQuantity || 0);
+      const remainingINR = matchableQty * exchangeRate;
+      const effectiveMinLimit = Math.max(minLimit || 800, 800);
+      const requiredUSDT = amountINR / exchangeRate;
+      const effectiveMaxLimit = Math.min(maxLimit, remainingINR);
+
+      // Skip ad if order exceeds effective capacity, if remaining INR is under 800 INR/minLimit, or if USDT is insufficient
+      if (amountINR < minLimit || amountINR > effectiveMaxLimit || matchableQty < (requiredUSDT - 0.001) || remainingINR < effectiveMinLimit) {
+        console.log(`[MatchingEngine] Skipping ad ${ad.adId}: insufficient capacity/limits (remainingINR: ₹${remainingINR.toFixed(2)}, minLimit: ₹${effectiveMinLimit}, matchableQty: ${matchableQty} USDT, required: ${requiredUSDT.toFixed(2)} USDT).`);
         continue;
       }
 
