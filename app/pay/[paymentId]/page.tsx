@@ -97,6 +97,16 @@ export default function CheckoutPage({
   const [error, setError] = useState<string | null>(null)
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const [isQrModalOpen, setIsQrModalOpen] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
+
+  // Detect mobile device to only show 1-Tap UPI intent buttons on phones
+  useEffect(() => {
+    const checkMobile = () => {
+      const ua = navigator.userAgent || navigator.vendor || (window as any).opera || ''
+      setIsMobile(/android|iphone|ipad|ipod|blackberry|iemobile|opera mini|mobile/i.test(ua))
+    }
+    checkMobile()
+  }, [])
 
   // ESC key listener to dismiss QR modal
   useEffect(() => {
@@ -1180,8 +1190,8 @@ export default function CheckoutPage({
                   )}
                 </div>
 
-                {/* 1-Tap Mobile UPI Intent Button */}
-                {(!isBankCategory && appIntents) && (
+                {/* 1-Tap Mobile UPI Intent Button - ONLY rendered on mobile phones */}
+                {(!isBankCategory && appIntents && isMobile) && (
                   <div className="mt-3 pt-3 border-t border-slate-200 space-y-2">
                     <a
                       href={
