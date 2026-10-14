@@ -7,7 +7,8 @@ import { Separator } from '@/components/ui/separator'
 import {
   Copy, Check, Shield, Clock, Wallet, Loader2, ArrowRight,
   CircleCheck, CircleDot, Circle, Zap, QrCode, Info, LockKeyhole,
-  PartyPopper, XCircle, RefreshCw, ChevronLeft, Headphones, X, Upload
+  PartyPopper, XCircle, RefreshCw, ChevronLeft, Headphones, X, Upload, Maximize2,
+  ExternalLink, Smartphone
 } from 'lucide-react'
 
 // ---------------------------------------------------------------------------
@@ -95,7 +96,67 @@ export default function CheckoutPage({
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [copiedId, setCopiedId] = useState<string | null>(null)
-  
+  const [isQrModalOpen, setIsQrModalOpen] = useState(false)
+
+  // ESC key listener to dismiss QR modal
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsQrModalOpen(false)
+      }
+    }
+    if (isQrModalOpen) {
+      window.addEventListener('keydown', handleKeyDown)
+    }
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [isQrModalOpen])
+
+  // Dynamic UPI Intent URI containing exact Amount, Currency & Order Reference
+  const dynamicUpiUri = useMemo(() => {
+    if (!payment?.vendorUpiId) return '';
+    const params = new URLSearchParams({
+      pa: payment.vendorUpiId,
+      pn: payment.vendorName || payment.vendorAccountHolder || 'Merchant',
+      am: Number(payment.amountINR).toFixed(2),
+      cu: 'INR',
+      tr: payment.orderId,
+      tn: `Deposit Order ${payment.orderId}`
+    });
+    return `upi://pay?${params.toString()}`;
+  }, [payment]);
+
+  // Specific App Intent deep-links for mobile 1-tap checkout
+  const appIntents = useMemo(() => {
+    if (!payment?.vendorUpiId) return null;
+    const baseParams = new URLSearchParams({
+      pa: payment.vendorUpiId,
+      pn: payment.vendorName || payment.vendorAccountHolder || 'Merchant',
+      am: Number(payment.amountINR).toFixed(2),
+      cu: 'INR',
+      tr: payment.orderId,
+      tn: `Deposit Order ${payment.orderId}`
+    }).toString();
+
+    return {
+      generic: `upi://pay?${baseParams}`,
+      phonepe: `phonepe://pay?${baseParams}`,
+      gpay: `tez://upi/pay?${baseParams}`,
+      paytm: `paytmmp://pay?${baseParams}`,
+    };
+  }, [payment]);
+
+  // Dynamic QR Code image URL (500x500 high-resolution with amount locked)
+  const qrImageUrl = useMemo(() => {
+    if (!payment) return '';
+    if (payment.vendorQrCode) return payment.vendorQrCode;
+    if (dynamicUpiUri) {
+      return `https://api.qrserver.com/v1/create-qr-code/?size=500x500&bgcolor=ffffff&color=0a1628&data=${encodeURIComponent(dynamicUpiUri)}`;
+    }
+    return 'https://api.qrserver.com/v1/create-qr-code/?size=500x500&bgcolor=ffffff&color=0a1628&data=No%20UPI%20ID%20Configured';
+  }, [payment, dynamicUpiUri]);
+
   // Selection/Summary states
   const [isMatching, setIsMatching] = useState(false)
   const [matchingStep, setMatchingStep] = useState(0)
@@ -126,13 +187,13 @@ export default function CheckoutPage({
   const filteredMethods = useMemo(() => {
     const selectedMatch = ALL_PAYMENT_METHODS.find(m => m.id === selectedMethod)
     const selectedTitle = selectedMatch ? selectedMatch.title : selectedMethod
-    
+
     // If search term is empty OR it matches the selected method's title exactly, show all options
     if (!searchTerm || searchTerm === selectedTitle) {
       return ALL_PAYMENT_METHODS;
     }
-    
-    return ALL_PAYMENT_METHODS.filter(m => 
+
+    return ALL_PAYMENT_METHODS.filter(m =>
       m.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       m.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
       m.desc.toLowerCase().includes(searchTerm.toLowerCase())
@@ -152,7 +213,6 @@ export default function CheckoutPage({
 
   const [paymentStatus, setPaymentStatus] = useState<string>('pending')
   const [txHash, setTxHash] = useState<string | null>(null)
-  const eventSourceRef = useRef<EventSource | null>(null)
 
   // Fetch payment info
   const fetchPayment = useCallback(async () => {
@@ -167,7 +227,7 @@ export default function CheckoutPage({
       setPayment(data)
       setPaymentStatus(data.status)
       if (data.txHash) setTxHash(data.txHash)
-      
+
       // Auto prefill payer name with customer name
       if (data.customerName && !payerName) {
         setPayerName(data.customerName)
@@ -188,76 +248,103 @@ export default function CheckoutPage({
     fetchPayment()
   }, [fetchPayment])
 
-  // Redirect on completion
+  // BFCache (Back-Forward Cache) guard – force fresh reload if page is restored from memory cache
   useEffect(() => {
-    if (!payment) return
-    const finalStatuses = ['completed', 'expired', 'cancelled']
-    const isFinal = finalStatuses.includes(paymentStatus)
+    const handlePageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) {
+        window.location.reload();
+      }
+    };
+    window.addEventListener('pageshow', handlePageShow);
+    return () => window.removeEventListener('pageshow', handlePageShow);
+  }, []);
 
-    if (!isFinal) return
+  // Redirect on completion (1 second delay for visual feedback)
+  useEffect(() => {
+    if (!payment) return;
+    const finalStatuses = ['completed', 'expired', 'cancelled'];
+    const isFinal = finalStatuses.includes(paymentStatus);
+
+    if (!isFinal) return;
 
     const timer = setTimeout(() => {
-      if (payment.callbackUrl) {
-        console.log(`[REDIRECT] Redirecting to: ${payment.callbackUrl}`)
-        window.location.href = payment.callbackUrl
+      const isSuccess = paymentStatus === 'completed';
+      const targetBase = isSuccess ? payment.callbackUrl : (payment.cancelUrl || payment.callbackUrl);
+
+      if (targetBase) {
+        try {
+          const url = new URL(targetBase);
+          url.searchParams.set('payment_id', payment.paymentId);
+          url.searchParams.set('order_id', payment.orderId);
+          url.searchParams.set('status', paymentStatus);
+          if (txHash) url.searchParams.set('tx_hash', txHash);
+
+          console.log(`[REDIRECT] Navigating to: ${url.toString()}`);
+          window.location.replace(url.toString());
+        } catch {
+          const separator = targetBase.includes('?') ? '&' : '?';
+          window.location.replace(`${targetBase}${separator}payment_id=${payment.paymentId}&order_id=${payment.orderId}&status=${paymentStatus}`);
+        }
       }
-    }, 4000)
+    }, 1000);
 
-    return () => clearTimeout(timer)
-  }, [paymentStatus, payment])
+    return () => clearTimeout(timer);
+  }, [paymentStatus, payment, txHash]);
 
-  // SSE watcher – listen for payment confirmation
+  // Polling watcher – check payment confirmation every 4 seconds
   useEffect(() => {
-    if (!paymentId) return
+    if (!paymentId) return;
 
-    const es = new EventSource(`/api/payment/${paymentId}/status`)
-    eventSourceRef.current = es
+    let isSubscribed = true;
+    const finalStatuses = ['completed', 'expired', 'cancelled'];
 
-    es.onmessage = (event) => {
+    const checkStatus = async () => {
+      if (!isSubscribed) return;
       try {
-        const data = JSON.parse(event.data)
+        const res = await fetch(`/api/payment/${paymentId}/status`);
+        if (!res.ok) return;
+        const data = await res.json();
+
+        if (!isSubscribed) return;
+
         if (data.status === 'completed') {
-          setPaymentStatus('completed')
-          if (data.txHash) setTxHash(data.txHash)
-          es.close()
+          setPaymentStatus('completed');
+          if (data.tx_hash) setTxHash(data.tx_hash);
         } else if (data.status === 'expired') {
-          setPaymentStatus('expired')
-          es.close()
-        } else if (data.status === 'confirming') {
-          setPaymentStatus('confirming')
-          fetchPaymentRef.current()
+          setPaymentStatus('expired');
         } else if (data.status === 'cancelled') {
-          setPaymentStatus('cancelled')
-          es.close()
+          setPaymentStatus('cancelled');
+        } else if (data.status === 'confirming') {
+          setPaymentStatus('confirming');
+          fetchPaymentRef.current();
         } else if (data.status === 'withheld' || data.status === 'frozen') {
-          setPaymentStatus(data.status)
-          if (data.timeLeft !== undefined) {
-            setPayment(prev => prev ? { ...prev, status: data.status, frozenTimeLeft: data.timeLeft } : null)
-          }
+          setPaymentStatus(data.status);
         } else if (data.status === 'pending') {
-          setPaymentStatus('pending')
-          fetchPaymentRef.current()
+          setPaymentStatus('pending');
         }
       } catch (err) {
-        console.error("SSE parse error:", err)
+        console.error("Polling error:", err);
       }
-    }
+    };
 
-    es.onerror = () => {
-      // Reconnect handled automatically by browser
-    }
+    const intervalId = setInterval(() => {
+      if (!finalStatuses.includes(paymentStatus)) {
+        checkStatus();
+      }
+    }, 4000);
 
     return () => {
-      es.close()
-    }
-  }, [paymentId])
+      isSubscribed = false;
+      clearInterval(intervalId);
+    };
+  }, [paymentId, paymentStatus]);
 
   // Copy to clipboard helper
   const copyText = useCallback((text: string, id: string) => {
     navigator.clipboard.writeText(text).then(() => {
       setCopiedId(id)
       setTimeout(() => setCopiedId(null), 1800)
-    }).catch(() => {})
+    }).catch(() => { })
   }, [])
 
   // Trigger matching engine
@@ -279,7 +366,7 @@ export default function CheckoutPage({
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || "Matching engine failed")
-      
+
       // Reload payment record with matching P2P details locked
       await fetchPayment()
     } catch (err: any) {
@@ -329,7 +416,7 @@ export default function CheckoutPage({
 
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
-      
+
       setPaymentStatus("confirming")
     } catch (err: any) {
       setProofError(err.message || "Failed to submit transaction proof.")
@@ -412,7 +499,7 @@ export default function CheckoutPage({
   // ---------------------------------------------------------------------------
   // Dynamic Views
   // ---------------------------------------------------------------------------
-  
+
   // 1. LOADING SCREEN
   if (loading) {
     return (
@@ -475,7 +562,7 @@ export default function CheckoutPage({
 
           <div className="flex items-center justify-center gap-2 text-xs text-slate-500">
             <Loader2 className="h-3 w-3 animate-spin text-emerald-600" />
-            <span>Firing Payment Webhook & Redirecting...</span>
+            <span>Redirecting...</span>
           </div>
         </div>
       </div>
@@ -492,13 +579,7 @@ export default function CheckoutPage({
           <p className="text-slate-600 text-sm mb-6">
             {paymentStatus === 'cancelled' ? 'This transaction has been flagged and cancelled.' : 'The payment session has expired.'}
           </p>
-          {payment.cancelUrl && (
-            <a href={window.location.origin}>
-              <Button variant="outline" className="h-11 border-slate-300 bg-slate-50 text-slate-700 hover:bg-slate-100 hover:text-slate-900">
-                Return to Merchant
-              </Button>
-            </a>
-          )}
+         <span>Redirecting...</span>
         </div>
       </div>
     )
@@ -526,12 +607,13 @@ export default function CheckoutPage({
             {isPaused ? "Verification Paused" : "Verifying Transaction"}
           </h1>
           <p className="text-slate-600 text-xs px-2 mb-6">
-            {isPaused 
+            {isPaused
               ? "This transaction has been temporarily withheld/paused by the administrator. The verification is paused and your funds are secure."
               : "Your payment proof has been submitted. The gateway matching engine is auditing your transaction and proof screenshot."
             }
           </p>
 
+          {/* Instructions for Evaluation & Vendor approval shortcut commented out for production
           <div className="bg-slate-50 rounded-2xl p-4 text-left space-y-2 border border-slate-200 mb-6 text-xs text-slate-600">
             <div className="font-semibold text-slate-800 text-center mb-2">Instructions for Evaluation:</div>
             {isPaused ? (
@@ -558,8 +640,9 @@ export default function CheckoutPage({
               </div>
             )}
           </div>
+          */}
 
-          <div className="text-[10px] text-slate-500">Monitoring bank settlement status in real-time.</div>
+          <div className="text-[10px] text-slate-500">Monitoring settlement status in real-time.</div>
         </div>
       </div>
     )
@@ -576,7 +659,9 @@ export default function CheckoutPage({
       <div className="min-h-screen w-full bg-[#f8fafc] text-slate-900 flex flex-col items-center">
         {/* Navigation Header */}
         <header className="w-full max-w-lg flex items-center justify-between px-5 py-4 border-b border-slate-200 bg-white/80 backdrop-blur-md">
-          <button className="text-slate-500 hover:text-slate-900 transition-colors">
+          <button 
+          onClick={handleCancel}
+          className="text-slate-500 hover:text-slate-900 transition-colors">
             <ChevronLeft className="h-5 w-5" />
           </button>
           <h1 className="text-lg font-black tracking-wider">
@@ -586,11 +671,10 @@ export default function CheckoutPage({
           </h1>
           <div className="flex items-center">
             {countdown.total >= 0 && (
-              <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-mono text-xs font-bold border transition-all ${
-                isPaymentWithheld 
-                  ? 'bg-sky-50 border-sky-200 text-sky-600' 
+              <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-mono text-xs font-bold border transition-all ${isPaymentWithheld
+                  ? 'bg-sky-50 border-sky-200 text-sky-600'
                   : 'bg-rose-50 border-rose-200 text-rose-600'
-              }`}>
+                }`}>
                 <Clock className="h-3.5 w-3.5" />
                 <span>{countdown.mm}:{countdown.ss}</span>
               </div>
@@ -612,15 +696,15 @@ export default function CheckoutPage({
                 Establishing a secure gateway connection to retrieve your order details.
                 This may take a few moments. Please do not close or refresh this page.
               </p>
-              
+
               {/* Sleek Progress Bar */}
               <div className="w-full max-w-xs bg-slate-200 border border-slate-300 rounded-full h-2.5 overflow-hidden p-0.5 shadow-inner">
-                <div 
+                <div
                   className="bg-gradient-to-r from-sky-500 to-indigo-500 h-full rounded-full transition-all duration-300 ease-out shadow-sm"
                   style={{ width: `${Math.min(100, (matchingStep / 5) * 100)}%` }}
                 />
               </div>
-              
+
               <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-3 animate-pulse">
                 {matchingStep < 5 ? "Securing channel..." : "Retrieving details..."}
               </span>
@@ -645,7 +729,7 @@ export default function CheckoutPage({
                     placeholder="Search payment method (e.g. PhonePe, Bank Transfer...)"
                     className="w-full h-12 pl-11 pr-10 bg-slate-100 border border-slate-200 text-slate-900 placeholder-slate-400 rounded-2xl text-sm focus:outline-none focus:border-sky-500 focus:bg-white focus:ring-2 focus:ring-sky-500/20 transition-all font-semibold shadow-xs"
                   />
-                  <button 
+                  <button
                     type="button"
                     onClick={() => setDropdownOpen(!dropdownOpen)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 p-1.5"
@@ -668,11 +752,10 @@ export default function CheckoutPage({
                               setSearchTerm(method.title)
                               setDropdownOpen(false)
                             }}
-                            className={`flex items-center justify-between px-4 py-2.5 rounded-xl cursor-pointer transition-all duration-150 ${
-                              isSelected 
-                                ? 'bg-sky-50 text-sky-700 font-bold border border-sky-200' 
+                            className={`flex items-center justify-between px-4 py-2.5 rounded-xl cursor-pointer transition-all duration-150 ${isSelected
+                                ? 'bg-sky-50 text-sky-700 font-bold border border-sky-200'
                                 : 'hover:bg-slate-50 text-slate-700 hover:text-slate-900 border border-transparent'
-                            }`}
+                              }`}
                           >
                             <div>
                               <div className="text-xs font-semibold">{method.title}</div>
@@ -685,7 +768,7 @@ export default function CheckoutPage({
                         )
                       })
                     ) : (
-                      <div 
+                      <div
                         onClick={() => {
                           setSelectedMethod(searchTerm)
                           setDropdownOpen(false)
@@ -731,7 +814,7 @@ export default function CheckoutPage({
                 <div className="flex items-center gap-1.5 text-xs text-slate-600 font-semibold uppercase tracking-wider mb-4 pb-2 border-b border-slate-200">
                   <LockKeyhole className="h-3.5 w-3.5 text-sky-500" /> Payment Details
                 </div>
-                
+
                 <div className="space-y-3.5 text-sm">
                   <div className="flex justify-between">
                     <span className="text-slate-500 font-medium">Pay To Account</span>
@@ -740,14 +823,6 @@ export default function CheckoutPage({
                   <div className="flex justify-between">
                     <span className="text-slate-500 font-medium">Deposit Amount</span>
                     <span className="text-slate-900 font-semibold">{estimatedUSDT} USDT</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-500 font-medium">Voucher Amount</span>
-                    <span className="text-slate-400">—</span>
-                  </div>
-                  <div className="flex justify-between pb-3 border-b border-slate-200">
-                    <span className="text-slate-500 font-medium">Voucher Applied</span>
-                    <span className="text-slate-400">—</span>
                   </div>
                   <div className="flex justify-between items-baseline pt-1">
                     <span className="text-slate-900 font-bold text-base">Actual Payment Amount</span>
@@ -806,11 +881,10 @@ export default function CheckoutPage({
         </h1>
         <div className="flex items-center gap-4">
           {countdown.total >= 0 && (
-            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-mono text-xs font-bold border transition-all ${
-              isPaymentWithheld 
-                ? 'bg-sky-50 border-sky-200 text-sky-600' 
+            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-mono text-xs font-bold border transition-all ${isPaymentWithheld
+                ? 'bg-sky-50 border-sky-200 text-sky-600'
                 : 'bg-rose-50 border-rose-200 text-rose-600'
-            }`}>
+              }`}>
               <Clock className="h-3.5 w-3.5" />
               <span>{countdown.mm}:{countdown.ss}</span>
             </div>
@@ -850,7 +924,7 @@ export default function CheckoutPage({
                 ₹{payment.amountINR.toLocaleString()}.00
               </span>
             </div>
-            
+
             <div className="space-y-1 border-l border-slate-200">
               <span className="text-[10px] uppercase tracking-wider text-slate-500 font-bold block">Receive USDT</span>
               <span className="text-lg font-black text-emerald-600 block">
@@ -1024,19 +1098,28 @@ export default function CheckoutPage({
 
                   {/* QR Image embedded on the right */}
                   {(!isBankCategory || payment.vendorQrCode) && (
-                    <div className="relative bg-white p-2 rounded-2xl w-24 h-24 sm:w-28 sm:h-28 shrink-0 flex items-center justify-center select-none shadow-sm border border-slate-200">
+                    <button
+                      type="button"
+                      onClick={() => setIsQrModalOpen(true)}
+                      className="group relative bg-white p-2 rounded-2xl w-24 h-24 sm:w-28 sm:h-28 shrink-0 flex items-center justify-center select-none shadow-sm border border-slate-200 hover:border-amber-400 hover:shadow-md cursor-pointer transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-amber-400/40"
+                      title="Click to zoom QR Code"
+                      aria-label="Enlarge QR code"
+                    >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
-                        src={payment.vendorQrCode || (payment.vendorUpiId 
-                          ? `https://api.qrserver.com/v1/create-qr-code/?size=300x300&bgcolor=ffffff&color=0a1628&data=${encodeURIComponent(`upi://pay?pa=${payment.vendorUpiId}&pn=${encodeURIComponent(payment.vendorName || "Vendor")}`)}` 
-                          : "https://api.qrserver.com/v1/create-qr-code/?size=300x300&bgcolor=ffffff&color=0a1628&data=No%20UPI%20ID%20Configured")}
+                        src={qrImageUrl}
                         alt="Payment QR"
-                        className="w-full h-full rounded-lg object-contain"
-                    />
-                    <div className="absolute inset-0 border border-slate-200 rounded-2xl pointer-events-none" />
-                  </div>
-                )}
-              </div>
+                        className="w-full h-full rounded-lg object-contain transition-transform duration-200 group-hover:scale-105"
+                      />
+                      <div className="absolute inset-0 bg-slate-900/0 group-hover:bg-slate-900/10 rounded-2xl transition-colors flex items-center justify-center pointer-events-none">
+                        <div className="opacity-0 group-hover:opacity-100 bg-white/95 text-slate-800 p-1.5 rounded-full shadow-md transition-all duration-200 scale-90 group-hover:scale-100">
+                          <Maximize2 className="h-3.5 w-3.5 text-slate-800" />
+                        </div>
+                      </div>
+                      <div className="absolute inset-0 border border-slate-200 group-hover:border-amber-400 rounded-2xl pointer-events-none transition-colors" />
+                    </button>
+                  )}
+                </div>
 
                 {/* Supported payment app icons */}
                 <div className="mt-3 pt-3 border-t border-slate-200 flex items-center justify-start gap-3">
@@ -1096,6 +1179,43 @@ export default function CheckoutPage({
                     </>
                   )}
                 </div>
+
+                {/* 1-Tap Mobile UPI Intent Button */}
+                {(!isBankCategory && appIntents) && (
+                  <div className="mt-3 pt-3 border-t border-slate-200 space-y-2">
+                    <a
+                      href={
+                        payment.paymentMethod?.toLowerCase() === 'phonepe'
+                          ? appIntents.phonepe
+                          : (payment.paymentMethod?.toLowerCase() === 'gpay' || payment.paymentMethod?.toLowerCase() === 'google pay')
+                          ? appIntents.gpay
+                          : payment.paymentMethod?.toLowerCase() === 'paytm'
+                          ? appIntents.paytm
+                          : appIntents.generic
+                      }
+                      className="w-full h-11 bg-gradient-to-r from-purple-600 via-indigo-600 to-sky-600 hover:from-purple-700 hover:to-indigo-700 text-white font-black text-xs rounded-xl flex items-center justify-center gap-2 shadow-md shadow-indigo-500/20 transition-all active:scale-[0.98]"
+                    >
+                      <Zap className="h-4 w-4 fill-white" />
+                      <span>
+                        {payment.paymentMethod?.toLowerCase() === 'phonepe'
+                          ? `Pay ₹${payment.amountINR.toLocaleString()} via PhonePe`
+                          : (payment.paymentMethod?.toLowerCase() === 'gpay' || payment.paymentMethod?.toLowerCase() === 'google pay')
+                          ? `Pay ₹${payment.amountINR.toLocaleString()} via Google Pay`
+                          : payment.paymentMethod?.toLowerCase() === 'paytm'
+                          ? `Pay ₹${payment.amountINR.toLocaleString()} via Paytm`
+                          : `Pay ₹${payment.amountINR.toLocaleString()} via Any UPI App`}
+                      </span>
+                      <ExternalLink className="h-3.5 w-3.5 opacity-80" />
+                    </a>
+                    <div className="flex items-center justify-between text-[10px] text-slate-500 px-1">
+                      <span className="flex items-center gap-1">
+                        <Smartphone className="h-3 w-3 text-slate-400" />
+                        <span>1-Tap App Launch (Mobile)</span>
+                      </span>
+                      <span className="font-mono font-semibold text-amber-600">₹{payment.amountINR.toLocaleString()}.00 pre-filled</span>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -1190,8 +1310,8 @@ export default function CheckoutPage({
                       </>
                     )}
                   </div>
-                  
-                  {/* Button to generate mock screenshot */}
+
+                  {/* Button to generate mock screenshot commented out for production
                   <div className="pt-2 text-center">
                     <button
                       type="button"
@@ -1201,6 +1321,7 @@ export default function CheckoutPage({
                       ✨ Generate Mock PhonePe Payment slip
                     </button>
                   </div>
+                  */}
                 </div>
               </div>
             </div>
@@ -1217,7 +1338,7 @@ export default function CheckoutPage({
           >
             Cancel
           </Button>
-          
+
           <Button
             type="button"
             onClick={handleSubmitProof}
@@ -1232,6 +1353,85 @@ export default function CheckoutPage({
           </Button>
         </div>
       </main>
+
+      {/* Enlarged QR Code Modal with blurred backdrop */}
+      {isQrModalOpen && payment && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-md animate-in fade-in duration-200"
+          onClick={() => setIsQrModalOpen(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Enlarged QR Code"
+        >
+          <div
+            className="relative w-full max-w-sm bg-white rounded-3xl p-6 shadow-2xl border border-slate-200/80 animate-in zoom-in-95 duration-200 flex flex-col items-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Close Button */}
+            <button
+              type="button"
+              onClick={() => setIsQrModalOpen(false)}
+              className="absolute top-4 right-4 h-9 w-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 flex items-center justify-center transition-colors shadow-xs"
+              aria-label="Close QR modal"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            {/* Modal Header */}
+            <div className="text-center mb-4 pr-6 pl-2">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-200">
+                Scan to Pay
+              </span>
+              <h3 className="text-base sm:text-lg font-bold text-slate-900 mt-2">
+                {payment.vendorAccountHolder || payment.vendorName || "Payment QR Code"}
+              </h3>
+              {payment.vendorUpiId && (
+                <p className="text-xs text-slate-500 font-mono mt-0.5 break-all">
+                  {payment.vendorUpiId}
+                </p>
+              )}
+            </div>
+
+            {/* Large QR Container */}
+            <div className="relative bg-white p-3.5 rounded-2xl border-2 border-slate-200 shadow-inner flex items-center justify-center max-w-[260px] sm:max-w-[280px] w-full aspect-square">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={qrImageUrl}
+                alt="Enlarged Payment QR"
+                className="w-full h-full object-contain rounded-lg select-none"
+              />
+            </div>
+
+            {/* Footer info: Amount & Tips */}
+            <div className="w-full mt-4 pt-4 border-t border-slate-100 flex flex-col items-center gap-2">
+              <div className="flex items-center justify-between w-full px-2 text-xs">
+                <span className="text-slate-500 font-medium">Exact Deposit Amount:</span>
+                <span className="font-extrabold font-mono text-amber-600 text-base">
+                  ₹{payment.amountINR.toLocaleString()}.00
+                </span>
+              </div>
+              {payment.vendorUpiId && (
+                <button
+                  type="button"
+                  onClick={() => copyText(payment.vendorUpiId || "", "modal_upi")}
+                  className="w-full py-2 px-3 mt-1 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-xs font-mono font-semibold text-slate-700 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <span className="truncate">Copy UPI ID: {payment.vendorUpiId}</span>
+                  {copiedId === "modal_upi" ? (
+                    <Check className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                  ) : (
+                    <Copy className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                  )}
+                </button>
+              )}
+              <p className="text-[11px] text-slate-400 text-center mt-1">
+                Scan with PhonePe, Google Pay, Paytm or any UPI app. Click outside or press ESC to close.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
+
