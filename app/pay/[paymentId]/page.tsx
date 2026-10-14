@@ -103,9 +103,13 @@ export default function CheckoutPage({
   useEffect(() => {
     const checkMobile = () => {
       const ua = navigator.userAgent || navigator.vendor || (window as any).opera || ''
-      setIsMobile(/android|iphone|ipad|ipod|blackberry|iemobile|opera mini|mobile/i.test(ua))
+      const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0
+      const isMobileUA = /android|iphone|ipad|ipod|blackberry|iemobile|opera mini|mobile/i.test(ua)
+      setIsMobile(isMobileUA || (isTouch && window.innerWidth < 768))
     }
     checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
   }, [])
 
   // ESC key listener to dismiss QR modal
@@ -126,36 +130,82 @@ export default function CheckoutPage({
   // Dynamic UPI Intent URI containing exact Amount, Currency & Order Reference
   const dynamicUpiUri = useMemo(() => {
     if (!payment?.vendorUpiId) return '';
-    const params = new URLSearchParams({
-      pa: payment.vendorUpiId,
-      pn: payment.vendorName || payment.vendorAccountHolder || 'Merchant',
-      am: Number(payment.amountINR).toFixed(2),
-      cu: 'INR',
-      tr: payment.orderId,
-      tn: `Deposit Order ${payment.orderId}`
-    });
-    return `upi://pay?${params.toString()}`;
+    const pa = encodeURIComponent(payment.vendorUpiId);
+    const pn = encodeURIComponent(payment.vendorName || payment.vendorAccountHolder || 'Merchant');
+    const am = Number(payment.amountINR).toFixed(2);
+    const cu = 'INR';
+    const tr = encodeURIComponent(payment.orderId || '');
+    const tn = encodeURIComponent(`Order ${payment.orderId || ''}`);
+    return `upi://pay?pa=${pa}&pn=${pn}&am=${am}&cu=${cu}&tr=${tr}&tn=${tn}`;
   }, [payment]);
 
-  // Specific App Intent deep-links for mobile 1-tap checkout
-  const appIntents = useMemo(() => {
-    if (!payment?.vendorUpiId) return null;
-    const baseParams = new URLSearchParams({
-      pa: payment.vendorUpiId,
-      pn: payment.vendorName || payment.vendorAccountHolder || 'Merchant',
-      am: Number(payment.amountINR).toFixed(2),
-      cu: 'INR',
-      tr: payment.orderId,
-      tn: `Deposit Order ${payment.orderId}`
-    }).toString();
+  // Universal & platform-specific App Intent deep-links for mobile 1-tap checkout
+  const getAppIntentUrl = useCallback((targetApp: 'phonepe' | 'gpay' | 'paytm' | 'generic') => {
+    if (!payment?.vendorUpiId) return '#';
+    const pa = encodeURIComponent(payment.vendorUpiId);
+    const pn = encodeURIComponent(payment.vendorName || payment.vendorAccountHolder || 'Merchant');
+    const am = Number(payment.amountINR).toFixed(2);
+    const cu = 'INR';
+    const tr = encodeURIComponent(payment.orderId || '');
+    const tn = encodeURIComponent(`Order ${payment.orderId || ''}`);
+    const query = `pa=${pa}&pn=${pn}&am=${am}&cu=${cu}&tr=${tr}&tn=${tn}`;
 
-    return {
-      generic: `upi://pay?${baseParams}`,
-      phonepe: `phonepe://pay?${baseParams}`,
-      gpay: `tez://upi/pay?${baseParams}`,
-      paytm: `paytmmp://pay?${baseParams}`,
-    };
+    const universal = `upi://pay?${query}`;
+    const isAndroid = typeof navigator !== 'undefined' && /android/i.test(navigator.userAgent);
+    const isIOS = typeof navigator !== 'undefined' && /iphone|ipad|ipod/i.test(navigator.userAgent);
+
+    if (isAndroid) {
+      if (targetApp === 'phonepe') {
+        return `intent://pay?${query}#Intent;package=com.phonepe.app;scheme=upi;end;`;
+      }
+      if (targetApp === 'gpay') {
+        return `intent://pay?${query}#Intent;package=com.google.android.apps.nbu.paisa.user;scheme=upi;end;`;
+      }
+      if (targetApp === 'paytm') {
+        return `intent://pay?${query}#Intent;package=net.one97.paytm;scheme=upi;end;`;
+      }
+      return universal;
+    }
+
+    if (isIOS) {
+      if (targetApp === 'phonepe') return `phonepe://pay?${query}`;
+      if (targetApp === 'gpay') return `gpay://upi/pay?${query}`;
+      if (targetApp === 'paytm') return `paytmmp://pay?${query}`;
+      return universal;
+    }
+
+    return universal;
   }, [payment]);
+
+  // Identify primary app from payment method
+  const primaryUpiApp: 'phonepe' | 'gpay' | 'paytm' | 'generic' = useMemo(() => {
+    const m = (payment?.paymentMethod || '').toLowerCase();
+    if (m.includes('phonepe')) return 'phonepe';
+    if (m.includes('gpay') || m.includes('google')) return 'gpay';
+    if (m.includes('paytm')) return 'paytm';
+    return 'generic';
+  }, [payment?.paymentMethod]);
+
+  // Mobile UPI Launch handler with fallback
+  const handleMobileUpiLaunch = useCallback((targetApp: 'phonepe' | 'gpay' | 'paytm' | 'generic') => {
+    if (!payment?.vendorUpiId) return;
+    const targetUrl = getAppIntentUrl(targetApp);
+    const universalUrl = getAppIntentUrl('generic');
+
+    try {
+      window.location.href = targetUrl;
+    } catch {
+      window.location.href = universalUrl;
+    }
+
+    if (targetApp !== 'generic') {
+      setTimeout(() => {
+        if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+          window.location.href = universalUrl;
+        }
+      }, 1500);
+    }
+  }, [payment, getAppIntentUrl]);
 
   // Dynamic QR Code image URL (500x500 high-resolution with amount locked)
   const qrImageUrl = useMemo(() => {
@@ -1190,39 +1240,80 @@ export default function CheckoutPage({
                   )}
                 </div>
 
-                {/* 1-Tap Mobile UPI Intent Button - ONLY rendered on mobile phones */}
-                {(!isBankCategory && appIntents && isMobile) && (
-                  <div className="mt-3 pt-3 border-t border-slate-200 space-y-2">
+                {/* 1-Tap Mobile UPI Intent Section - ONLY rendered on mobile phones */}
+                {(!isBankCategory && payment.vendorUpiId && isMobile) && (
+                  <div className="mt-3 pt-3 border-t border-slate-200 space-y-2.5">
+                    {/* Primary 1-Tap Launch Button */}
                     <a
-                      href={
-                        payment.paymentMethod?.toLowerCase() === 'phonepe'
-                          ? appIntents.phonepe
-                          : (payment.paymentMethod?.toLowerCase() === 'gpay' || payment.paymentMethod?.toLowerCase() === 'google pay')
-                          ? appIntents.gpay
-                          : payment.paymentMethod?.toLowerCase() === 'paytm'
-                          ? appIntents.paytm
-                          : appIntents.generic
-                      }
-                      className="w-full h-11 bg-gradient-to-r from-purple-600 via-indigo-600 to-sky-600 hover:from-purple-700 hover:to-indigo-700 text-white font-black text-xs rounded-xl flex items-center justify-center gap-2 shadow-md shadow-indigo-500/20 transition-all active:scale-[0.98]"
+                      href={getAppIntentUrl(primaryUpiApp)}
+                      onClick={() => handleMobileUpiLaunch(primaryUpiApp)}
+                      className={`w-full h-11 text-white font-black text-xs rounded-xl flex items-center justify-center gap-2 shadow-md transition-all active:scale-[0.98] ${
+                        primaryUpiApp === 'phonepe'
+                          ? 'bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 shadow-purple-500/20'
+                          : primaryUpiApp === 'gpay'
+                          ? 'bg-gradient-to-r from-blue-600 via-sky-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-blue-500/20'
+                          : primaryUpiApp === 'paytm'
+                          ? 'bg-gradient-to-r from-sky-500 via-blue-600 to-indigo-600 hover:from-sky-600 hover:to-blue-700 shadow-sky-500/20'
+                          : 'bg-gradient-to-r from-indigo-600 via-purple-600 to-sky-600 hover:from-indigo-700 hover:to-purple-700 shadow-indigo-500/20'
+                      }`}
                     >
                       <Zap className="h-4 w-4 fill-white" />
                       <span>
-                        {payment.paymentMethod?.toLowerCase() === 'phonepe'
-                          ? `Pay ₹${payment.amountINR.toLocaleString()} via PhonePe`
-                          : (payment.paymentMethod?.toLowerCase() === 'gpay' || payment.paymentMethod?.toLowerCase() === 'google pay')
-                          ? `Pay ₹${payment.amountINR.toLocaleString()} via Google Pay`
-                          : payment.paymentMethod?.toLowerCase() === 'paytm'
-                          ? `Pay ₹${payment.amountINR.toLocaleString()} via Paytm`
-                          : `Pay ₹${payment.amountINR.toLocaleString()} via Any UPI App`}
+                        {primaryUpiApp === 'phonepe'
+                          ? `Pay \u20B9${payment.amountINR.toLocaleString()} via PhonePe`
+                          : primaryUpiApp === 'gpay'
+                          ? `Pay \u20B9${payment.amountINR.toLocaleString()} via Google Pay`
+                          : primaryUpiApp === 'paytm'
+                          ? `Pay \u20B9${payment.amountINR.toLocaleString()} via Paytm`
+                          : `Pay \u20B9${payment.amountINR.toLocaleString()} via Any UPI App`}
                       </span>
                       <ExternalLink className="h-3.5 w-3.5 opacity-80" />
                     </a>
-                    <div className="flex items-center justify-between text-[10px] text-slate-500 px-1">
+
+                    {/* Quick App Alternatives Row */}
+                    <div className="space-y-1.5">
+                      <div className="text-[10px] text-slate-500 font-medium px-0.5 flex items-center justify-between">
+                        <span>Or open directly in:</span>
+                        <span className="font-mono text-amber-600 font-semibold">₹{payment.amountINR.toLocaleString()}.00 pre-filled</span>
+                      </div>
+                      <div className="grid grid-cols-4 gap-1.5">
+                        <a
+                          href={getAppIntentUrl('phonepe')}
+                          onClick={() => handleMobileUpiLaunch('phonepe')}
+                          className="h-8 bg-purple-50 hover:bg-purple-100 active:bg-purple-200 border border-purple-200 text-purple-700 rounded-lg flex items-center justify-center text-[10px] font-bold shadow-xs transition-colors"
+                        >
+                          PhonePe
+                        </a>
+                        <a
+                          href={getAppIntentUrl('gpay')}
+                          onClick={() => handleMobileUpiLaunch('gpay')}
+                          className="h-8 bg-blue-50 hover:bg-blue-100 active:bg-blue-200 border border-blue-200 text-blue-700 rounded-lg flex items-center justify-center text-[10px] font-bold shadow-xs transition-colors"
+                        >
+                          GPay
+                        </a>
+                        <a
+                          href={getAppIntentUrl('paytm')}
+                          onClick={() => handleMobileUpiLaunch('paytm')}
+                          className="h-8 bg-sky-50 hover:bg-sky-100 active:bg-sky-200 border border-sky-200 text-sky-700 rounded-lg flex items-center justify-center text-[10px] font-bold shadow-xs transition-colors"
+                        >
+                          Paytm
+                        </a>
+                        <a
+                          href={getAppIntentUrl('generic')}
+                          onClick={() => handleMobileUpiLaunch('generic')}
+                          className="h-8 bg-slate-50 hover:bg-slate-100 active:bg-slate-200 border border-slate-300 text-slate-700 rounded-lg flex items-center justify-center text-[10px] font-bold shadow-xs transition-colors"
+                        >
+                          Any App
+                        </a>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between text-[10px] text-slate-500 px-1 pt-0.5">
                       <span className="flex items-center gap-1">
                         <Smartphone className="h-3 w-3 text-slate-400" />
-                        <span>1-Tap App Launch (Mobile)</span>
+                        <span>Instant 1-Tap App Switch</span>
                       </span>
-                      <span className="font-mono font-semibold text-amber-600">₹{payment.amountINR.toLocaleString()}.00 pre-filled</span>
+                      <span className="text-slate-400">Auto-filled amount</span>
                     </div>
                   </div>
                 )}
